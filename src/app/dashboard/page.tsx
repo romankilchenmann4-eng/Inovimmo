@@ -1,19 +1,132 @@
-const [
-  { count: totalWohnungen },
-  { count: belegteWohnungen },
-  { count: offeneTickets },
-  { count: dringendeTickets },
-  { data: escrows },
-  { data: recentTickets },
-  { data: liegenschaften },
-  { data: mieten }, // 👈 NEU
-] = await Promise.all([
-  supabase.from("wohnungen").select("*", { count: "exact", head: true }),
-  supabase.from("wohnungen").select("*", { count: "exact", head: true }).eq("status", "vermietet"),
-  supabase.from("tickets").select("*", { count: "exact", head: true }).in("status", ["neu","ausgeschrieben","offerten_eingegangen"]),
-  supabase.from("tickets").select("*", { count: "exact", head: true }).eq("prioritaet", "notfall").in("status", ["neu","ausgeschrieben"]),
-  supabase.from("escrows").select("betrag").in("status", ["einbezahlt","in_ausfuehrung"]),
-  supabase.from("tickets").select("id,titel,prioritaet,status,created_at,liegenschaft:liegenschaften(name)").order("created_at", { ascending: false }).limit(5),
-  supabase.from("liegenschaften").select("id,name,ort,anzahl_wohnungen").limit(5),
-  supabase.from("wohnungen").select("brutto_miete"), // 👈 HIER
-]);
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+
+export default function DashboardPage() {
+  const supabase = createClient()
+
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [liegenschaften, setLiegenschaften] = useState<any[]>([])
+  const [mieten, setMieten] = useState<any[]>([])
+  const [totalWohnungen, setTotalWohnungen] = useState(0)
+  const [belegteWohnungen, setBelegteWohnungen] = useState(0)
+
+  useEffect(() => {
+    const load = async () => {
+      // 👤 User holen
+      const { data: userRes } = await supabase.auth.getUser()
+      const currentUser = userRes?.user
+      setUser(currentUser)
+
+      if (!currentUser) return
+
+      // 👤 Profil
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single()
+
+      setProfile(profile)
+
+      // 🏢 Liegenschaften
+      const { data: lieg } = await supabase
+        .from('liegenschaften')
+        .select('id,name,ort,anzahl_wohnungen')
+        .eq('verwalter_id', currentUser.id)
+
+      setLiegenschaften(lieg || [])
+
+      // 🏠 Wohnungen + Mieten
+      const { data: wohnungen } = await supabase
+        .from('wohnungen')
+        .select('status, brutto_miete')
+        .eq('verwalter_id', currentUser.id)
+
+      setMieten(wohnungen || [])
+
+      // 📊 KPIs
+      const total = wohnungen?.length || 0
+      const belegt =
+        wohnungen?.filter((w) => w.status === 'vermietet').length || 0
+
+      setTotalWohnungen(total)
+      setBelegteWohnungen(belegt)
+    }
+
+    load()
+  }, [])
+
+  // 💰 Berechnungen
+  const jahresErtrag =
+    (mieten.reduce((sum, w) => sum + (w.brutto_miete ?? 0), 0) || 0) * 12
+
+  const leerstandQuote =
+    totalWohnungen > 0
+      ? (((totalWohnungen - belegteWohnungen) / totalWohnungen) * 100).toFixed(1)
+      : '0.0'
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto p-4">
+      {/* Welcome */}
+      <div>
+        <h2 className="text-xl font-bold">
+          Guten Tag, {profile?.full_name?.split(' ')[0] ?? ''} 👋
+        </h2>
+      </div>
+
+      {/* KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="stat-card">
+          <p>Wohnungen</p>
+          <p className="text-2xl font-bold">{totalWohnungen}</p>
+          <p>{belegteWohnungen} belegt</p>
+        </div>
+
+        <div className="stat-card">
+          <p>Leerstand</p>
+          <p className="text-2xl font-bold">{leerstandQuote}%</p>
+        </div>
+
+        <div className="stat-card">
+          <p>Jahresertrag</p>
+          <p className="text-2xl font-bold">
+            CHF {jahresErtrag.toLocaleString('de-CH')}
+          </p>
+        </div>
+
+        <div className="stat-card">
+          <p>Liegenschaften</p>
+          <p className="text-2xl font-bold">{liegenschaften.length}</p>
+        </div>
+      </div>
+
+      {/* Liegenschaften Liste */}
+      <div className="bg-white rounded-xl border shadow-sm">
+        <div className="flex justify-between p-4 border-b">
+          <h3 className="font-semibold">Meine Liegenschaften</h3>
+          <Link href="/dashboard/objekte">Alle anzeigen →</Link>
+        </div>
+
+        {liegenschaften.length === 0 ? (
+          <div className="p-6 text-gray-400">Keine Daten</div>
+        ) : (
+          liegenschaften.map((l) => (
+            <div
+              key={l.id}
+              className="p-4 border-b hover:bg-gray-50 transition"
+            >
+              <div className="font-medium">{l.name}</div>
+              <div className="text-sm text-gray-400">
+                {l.ort} · {l.anzahl_wohnungen} Wohnungen
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
