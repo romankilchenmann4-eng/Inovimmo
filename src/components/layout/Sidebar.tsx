@@ -4,26 +4,46 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Profile } from "@/types";
 
-type NavItem = { href: string; label: string; icon: string; roles: string[]; section?: string; };
+type NavItem = { href: string; label: string; icon: string; roles: string[]; section?: string; badge?: string; };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard",               label: "Dashboard",           icon: "📊", roles: ["verwalter","mieter","dienstleister","admin"], section: "Übersicht" },
-  { href: "/dashboard/objekte",       label: "Objekte & Mieter",    icon: "🏢", roles: ["verwalter","admin"], section: "Verwaltung" },
-  { href: "/dashboard/tickets",       label: "Tickets",             icon: "🎫", roles: ["verwalter","mieter","admin"] },
-  { href: "/dashboard/offerten",      label: "Offerten",            icon: "📋", roles: ["verwalter","dienstleister","admin"] },
-  { href: "/dashboard/escrow",        label: "Escrow & Zahlung",    icon: "🔒", roles: ["verwalter","dienstleister","admin"] },
-  { href: "/dashboard/nebkosten",     label: "Nebenkosten",         icon: "📑", roles: ["verwalter","admin"] },
-  { href: "/dashboard/dokumente",     label: "Dokumente",           icon: "📁", roles: ["verwalter","admin"], section: "Tools" },
-  { href: "/dashboard/uebergabe",     label: "Wohnungsübergabe",    icon: "🔑", roles: ["verwalter","admin"] },
-  { href: "/dashboard/screening",     label: "Mieter-Screening",    icon: "🔍", roles: ["verwalter","admin"] },
-  { href: "/dashboard/kalender",      label: "Kalender",            icon: "📅", roles: ["verwalter","admin"] },
-  { href: "/dashboard/buchhaltung",   label: "Buchhaltung",         icon: "💼", roles: ["verwalter","admin"] },
-  { href: "/dashboard/ki-analyse",    label: "KI-Mietpreisanalyse", icon: "📈", roles: ["verwalter","admin"], section: "KI" },
-  { href: "/dashboard/ki-assistent",  label: "KI-Assistent",        icon: "🤖", roles: ["verwalter","mieter","admin"] },
-  { href: "/dashboard/marktplatz",    label: "Marktplatz",          icon: "🛒", roles: ["verwalter","admin"], section: "Services" },
-  { href: "/dashboard/mieter",        label: "Meine Wohnung",       icon: "🏠", roles: ["mieter"], section: "Mein Bereich" },
-  { href: "/dashboard/dienstleister", label: "Mein Betrieb",        icon: "🔧", roles: ["dienstleister"], section: "Mein Betrieb" },
-  { href: "/dashboard/einstellungen", label: "Einstellungen",       icon: "⚙️", roles: ["verwalter","mieter","dienstleister","admin"], section: "Konto" },
+  // ===== Übersicht =====
+  { href: "/dashboard",                       label: "Dashboard",                 icon: "📊", roles: ["verwalter","mieter","dienstleister","admin"], section: "Übersicht" },
+
+  // ===== Verwaltung =====
+  { href: "/dashboard/objekte",               label: "Objekte & Mieter",          icon: "🏢", roles: ["verwalter","admin"], section: "Verwaltung" },
+  { href: "/dashboard/objekte/import",        label: "Mieterspiegel importieren", icon: "📥", roles: ["verwalter","admin"], badge: "KI" },
+  { href: "/dashboard/tickets",               label: "Tickets",                   icon: "🎫", roles: ["verwalter","mieter","admin"] },
+  { href: "/dashboard/offerten",              label: "Offerten",                  icon: "📋", roles: ["verwalter","dienstleister","admin"] },
+  { href: "/dashboard/escrow",                label: "Escrow & Zahlung",          icon: "🔒", roles: ["verwalter","dienstleister","admin"] },
+  { href: "/dashboard/nebkosten",             label: "Nebenkosten",               icon: "📑", roles: ["verwalter","admin"] },
+
+  // ===== Mietrecht =====
+  { href: "/dashboard/mietzinserhoehung",     label: "Mietzinserhöhungen",        icon: "🧾", roles: ["verwalter","admin"], section: "Mietrecht" },
+  { href: "/dashboard/mieter/anpassungen",    label: "Mietzinsanpassungen",       icon: "🧾", roles: ["mieter"], section: "Mietrecht" },
+
+  // ===== Tools =====
+  { href: "/dashboard/dokumente",             label: "Dokumente",                 icon: "📁", roles: ["verwalter","admin"], section: "Tools" },
+  { href: "/dashboard/uebergabe",             label: "Wohnungsübergabe",          icon: "🔑", roles: ["verwalter","admin"] },
+  { href: "/dashboard/screening",             label: "Mieter-Screening",          icon: "🔍", roles: ["verwalter","admin"] },
+  { href: "/dashboard/kalender",              label: "Kalender",                  icon: "📅", roles: ["verwalter","admin"] },
+  { href: "/dashboard/buchhaltung",           label: "Buchhaltung",               icon: "💼", roles: ["verwalter","admin"] },
+
+  // ===== KI =====
+  { href: "/dashboard/ki-analyse",            label: "KI-Mietpreisanalyse",       icon: "📈", roles: ["verwalter","admin"], section: "KI" },
+  { href: "/dashboard/ki-assistent",          label: "KI-Assistent",              icon: "🤖", roles: ["verwalter","mieter","admin"] },
+
+  // ===== Services =====
+  { href: "/dashboard/marktplatz",            label: "Marktplatz",                icon: "🛒", roles: ["verwalter","admin"], section: "Services" },
+
+  // ===== Mein Bereich (Mieter) =====
+  { href: "/dashboard/mieter",                label: "Meine Wohnung",             icon: "🏠", roles: ["mieter"], section: "Mein Bereich" },
+
+  // ===== Mein Betrieb (Dienstleister) =====
+  { href: "/dashboard/dienstleister",         label: "Mein Betrieb",              icon: "🔧", roles: ["dienstleister"], section: "Mein Betrieb" },
+
+  // ===== Konto =====
+  { href: "/dashboard/einstellungen",         label: "Einstellungen",             icon: "⚙️", roles: ["verwalter","mieter","dienstleister","admin"], section: "Konto" },
 ];
 
 export default function Sidebar({ profile }: { profile: Profile | null }) {
@@ -53,6 +73,11 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
               <Link href={item.href} className={`sidebar-item ${isActive ? "active" : ""}`}>
                 <span className="text-base w-5 text-center flex-shrink-0">{item.icon}</span>
                 <span className="flex-1 text-sm truncate">{item.label}</span>
+                {item.badge && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[hsl(214,76%,49%)] text-white flex-shrink-0">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             </div>
           );
