@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createCalculation } from '@/lib/mietzinserhoehung/actions';
+import { erstelleErhoehung } from '@/lib/mietzinserhoehung/actions';
 
 export default async function MietzinserhoehungPage() {
   const supabase = await createClient();
