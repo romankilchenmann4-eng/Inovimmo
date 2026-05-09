@@ -131,10 +131,9 @@ export async function neuBerechnen(id: string) {
     amortisation_prozent: erhoehung.amortisation_prozent ?? 0,
     unterhalt_prozent: erhoehung.unterhalt_prozent ?? 0,
     positionen: positionen.map(p => ({
-      einheit_bezeichnung: `Whg ${p.wohnung_id}`,
-      mieter_name: null,
-      aktueller_mietzins: Number((p as any).wohnung?.nettomiete ?? 0),
-      ist_beheizt: p.beheizt,
+  wohnung_id: p.wohnung_id,
+  nettomiete: Number((p as any).wohnung?.nettomiete ?? 0),
+  beheizt: Boolean(p.wohnung?.beheizt ?? false),
     })),
   });
 
