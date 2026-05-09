@@ -1,66 +1,103 @@
-export type RentIncreaseReason = 
-  | 'heating_replacement' 
-  | 'renovation' 
-  | 'other_value_added';
+// ============================================================
+// Mietzinserhöhung – TypeScript Types
+// Konsistent mit Inovimmo-Datenmodell (deutsch)
+// ============================================================
 
-export type RentIncreaseStatus = 
-  | 'draft' 
-  | 'calculated' 
-  | 'sent' 
-  | 'challenged' 
-  | 'active';
+export type MietzinsErhoehungGrund =
+  | 'heizungsersatz'
+  | 'renovation'
+  | 'wertvermehrend_sonstiges';
 
-export interface RentIncreaseCalculation {
+export type MietzinsErhoehungStatus =
+  | 'entwurf'
+  | 'berechnet'
+  | 'versendet'
+  | 'angefochten'
+  | 'aktiv';
+
+export type VersandMethode =
+  | 'einschreiben'
+  | 'a_post'
+  | 'email'
+  | 'manuell';
+
+export interface MietzinsErhoehung {
   id: string;
+  liegenschaft_id: string;
+  verwalter_id: string;
+  titel: string;
+  grund: MietzinsErhoehungGrund;
+  investition_total: number;
+  foerderbeitraege: number;
+  wertvermehrend_prozent: number;
+  referenzzinssatz: number;
+  zuschlag: number;
+  amortisation_prozent: number;
+  unterhalt_prozent: number;
+  netto_investition: number;       // generated column
+  jahressatz_total: number;        // generated column
+  status: MietzinsErhoehungStatus;
+  inkrafttreten: string | null;
+  begruendung_text: string | null;
   created_at: string;
   updated_at: string;
-  created_by: string | null;
-  property_id: string | null;
-  title: string;
-  reason: RentIncreaseReason;
-  investment_total: number;
-  subsidies: number;
-  value_added_pct: number;
-  reference_rate: number;
-  surcharge: number;
-  amortization_pct: number;
-  maintenance_pct: number;
-  status: RentIncreaseStatus;
-  effective_date: string | null;
-  justification_text: string | null;
 }
 
-export interface RentIncreaseAllocation {
+export interface MietzinsErhoehungPosition {
   id: string;
-  calculation_id: string;
-  rental_unit_id: string | null;
-  unit_label: string;
-  tenant_name: string | null;
-  current_rent: number;
-  is_heated: boolean;
-  share_pct: number | null;
-  monthly_increase: number | null;
-  new_rent: number | null;
-  notification_sent_at: string | null;
-  notification_method: string | null;
-  acknowledged_at: string | null;
+  mietzins_erhoehung_id: string;
+  wohnung_id: string;
+  beheizt: boolean;
+  anteil_prozent: number | null;
+  monatliche_erhoehung: number | null;
+  neuer_nettomietzins: number | null;
+  versendet_at: string | null;
+  versand_methode: VersandMethode | null;
+  bestaetigt_at: string | null;
+  created_at: string;
 }
 
-export interface CalculationResult {
-  netInvestment: number;
-  valueAddedAmount: number;
-  totalRatePct: number;
-  yearlyIncrease: number;
-  monthlyIncrease: number;
-  allocations: AllocationResult[];
+// Erweiterte Position mit Wohnungs- und Mieter-Daten (für UI)
+export interface PositionMitWohnung extends MietzinsErhoehungPosition {
+  wohnung: {
+    id: string;
+    bezeichnung: string;
+    whg_nr: string | null;
+    wohnungstyp: string;
+    nettomiete: number;
+    nebenkosten_akonto: number;
+    flaeche_m2: number | null;
+  };
+  mieter_namen: string[];   // formatierte Liste der Mieter
 }
 
-export interface AllocationResult {
-  unit_label: string;
-  tenant_name: string | null;
-  current_rent: number;
-  is_heated: boolean;
-  share_pct: number;
-  monthly_increase: number;
-  new_rent: number;
+// Berechnungs-Input
+export interface BerechnungsInput {
+  investition_total: number;
+  foerderbeitraege: number;
+  wertvermehrend_prozent: number;
+  referenzzinssatz: number;
+  zuschlag: number;
+  amortisation_prozent: number;
+  unterhalt_prozent: number;
+  positionen: Array<{
+    wohnung_id: string;
+    nettomiete: number;
+    beheizt: boolean;
+  }>;
+}
+
+// Berechnungs-Output
+export interface BerechnungsErgebnis {
+  netto_investition: number;
+  wertvermehrender_betrag: number;
+  jahressatz_total: number;
+  jaehrliche_mehrbelastung: number;
+  monatliche_mehrbelastung: number;
+  positionen: Array<{
+    wohnung_id: string;
+    anteil_prozent: number;
+    monatliche_erhoehung: number;
+    neuer_nettomietzins: number;
+  }>;
 }
