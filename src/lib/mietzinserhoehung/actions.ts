@@ -147,7 +147,7 @@ beheizt: Boolean(p.beheizt ?? false),
       .update({
         anteil_prozent: erg.anteil_prozent,
         monatliche_erhoehung: erg.monatliche_erhoehung,
-        neuer_nettomietzins: erg.neuer_mietzins, // 👈 wichtig
+        neuer_nettomietzins: erg.neuer_nettomietzins,
       })
       .eq('id', pos.id);
   }
