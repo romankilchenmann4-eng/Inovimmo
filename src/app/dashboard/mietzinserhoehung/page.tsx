@@ -1,10 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, FileText, Home } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { createCalculation } from '@/lib/mietzinserhoehung/actions';
 
 export default async function MietzinserhoehungPage() {
@@ -17,12 +13,21 @@ export default async function MietzinserhoehungPage() {
     .select('*')
     .order('created_at', { ascending: false });
 
+  const STATUS: Record<string, { label: string; cls: string }> = {
+    draft:       { label: 'Entwurf',       cls: 'badge-gray' },
+    calculated:  { label: 'Berechnet',     cls: 'badge-blue' },
+    sent:        { label: 'Versendet',     cls: 'badge-amber' },
+    challenged:  { label: '⚠ Angefochten', cls: 'badge-red' },
+    active:      { label: 'Aktiv',         cls: 'badge-green' },
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mietzinserhöhungen</h1>
-          <p className="text-muted-foreground mt-1">
+          <h2 className="text-xl font-bold text-gray-900">Mietzinserhöhungen</h2>
+          <p className="text-sm text-gray-500">
             Berechnung und Verwaltung wertvermehrender Investitionen 
             nach Art. 269a OR / Art. 14 VMWG
           </p>
@@ -30,64 +35,66 @@ export default async function MietzinserhoehungPage() {
         <form action={createCalculation}>
           <input type="hidden" name="title" value="Neue Berechnung" />
           <input type="hidden" name="reason" value="heating_replacement" />
-          <Button type="submit">
-            <Plus className="mr-2 h-4 w-4" />
-            Neue Berechnung
-          </Button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-[hsl(214,76%,49%)] text-white rounded-lg text-sm font-medium hover:opacity-90 flex items-center gap-2"
+          >
+            <span>+</span> Neue Berechnung
+          </button>
         </form>
       </div>
 
+      {/* Empty State oder Liste */}
       {!calculations?.length ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Noch keine Berechnungen
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Erstellen Sie Ihre erste Mietzinserhöhungs-Berechnung.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-16 text-center">
+          <p className="text-4xl mb-3">🧾</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Noch keine Berechnungen
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Erstellen Sie Ihre erste Mietzinserhöhungs-Berechnung.
+          </p>
+        </div>
       ) : (
-        <div className="grid gap-4">
-          {calculations.map(calc => (
-            <Link 
-              key={calc.id} 
-              href={`/dashboard/mietzinserhoehung/${calc.id}`}
-            >
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Home className="h-5 w-5" />
-                        {calc.title}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Erstellt am {new Date(calc.created_at).toLocaleDateString('de-CH')}
-                      </p>
+        <div className="grid gap-3">
+          {calculations.map(calc => {
+            const status = STATUS[calc.status] ?? { label: calc.status, cls: 'badge-gray' };
+            return (
+              <Link 
+                key={calc.id} 
+                href={`/dashboard/mietzinserhoehung/${calc.id}`}
+                className="block bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="p-5 flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0">
+                      🧾
                     </div>
-                    <StatusBadge status={calc.status} />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {calc.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                        <span>
+                          Erstellt: {new Date(calc.created_at).toLocaleDateString('de-CH')}
+                        </span>
+                        {calc.investment_total > 0 && (
+                          <span>
+                            Investition: CHF {Number(calc.investment_total).toLocaleString('de-CH')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+                  <div className="flex-shrink-0">
+                    <span className={status.cls}>{status.label}</span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const config = {
-    draft: { label: 'Entwurf', variant: 'secondary' as const },
-    calculated: { label: 'Berechnet', variant: 'default' as const },
-    sent: { label: 'Versendet', variant: 'default' as const },
-    challenged: { label: 'Angefochten', variant: 'destructive' as const },
-    active: { label: 'Aktiv', variant: 'default' as const },
-  }[status] ?? { label: status, variant: 'secondary' as const };
-  
-  return <Badge variant={config.variant}>{config.label}</Badge>;
 }
