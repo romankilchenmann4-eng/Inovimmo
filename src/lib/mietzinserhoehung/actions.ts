@@ -132,7 +132,7 @@ export async function neuBerechnen(id: string) {
     unterhalt_prozent: erhoehung.unterhalt_prozent ?? 0,
     positionen: positionen.map(p => ({
   wohnung_id: p.wohnung_id,
- nettomiete: Number(p.nettomiete ?? 0),
+ nettomiete: Number(p.wohnung?.[0]?.nettomiete ?? 0),
 beheizt: Boolean(p.beheizt ?? false),
     })),
   });
