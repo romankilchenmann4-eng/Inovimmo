@@ -32,7 +32,7 @@ export default async function MietzinserhoehungPage() {
             nach Art. 269a OR / Art. 14 VMWG
           </p>
         </div>
-        <form action={createCalculation}>
+        <form action={erstelleErhoehung(formData)}>
           <input type="hidden" name="title" value="Neue Berechnung" />
           <input type="hidden" name="reason" value="heating_replacement" />
           <button
