@@ -1,59 +1,77 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { calculateRentIncrease } from '@/lib/mietzinserhoehung/calc';
-import { 
-  updateCalculation, 
-  recalculateAndSave, 
-  addAllocation, 
-  deleteAllocation,
+import Link from 'next/link';
+import { berechneErhoehung } from '@/lib/mietzinserhoehung/calc';
+import {
+  aktualisiereErhoehung,
+  neuBerechnen,
+  setzeBeheizt,
+  loescheErhoehung,
 } from '@/lib/mietzinserhoehung/actions';
-import type { 
-  RentIncreaseCalculation, 
-  RentIncreaseAllocation,
+import type {
+  MietzinsErhoehung,
+  PositionMitWohnung,
 } from '@/lib/mietzinserhoehung/types';
 
 interface Props {
-  calculation: RentIncreaseCalculation;
-  allocations: RentIncreaseAllocation[];
+  erhoehung: MietzinsErhoehung & {
+    liegenschaft: {
+      id: string;
+      name: string;
+      strasse: string;
+      hausnummer: string;
+      plz: string;
+      ort: string;
+    };
+  };
+  positionen: PositionMitWohnung[];
 }
 
 type TabKey = 'investition' | 'saetze' | 'verteilung' | 'dokumente';
 
-export function BerechnungForm({ calculation, allocations: initialAllocations }: Props) {
-  const [calc, setCalc] = useState(calculation);
-  const [allocations, setAllocations] = useState(initialAllocations);
+export function BerechnungForm({ erhoehung: initial, positionen: initialPositionen }: Props) {
+  const [erhoehung, setErhoehung] = useState(initial);
+  const [positionen, setPositionen] = useState(initialPositionen);
   const [tab, setTab] = useState<TabKey>('investition');
   const [isPending, startTransition] = useTransition();
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  // Live-Berechnung
-  const result = useMemo(() => calculateRentIncrease({
-    investment_total: calc.investment_total,
-    subsidies: calc.subsidies,
-    value_added_pct: calc.value_added_pct,
-    reference_rate: calc.reference_rate,
-    surcharge: calc.surcharge,
-    amortization_pct: calc.amortization_pct,
-    maintenance_pct: calc.maintenance_pct,
-    allocations: allocations.map(a => ({
-      unit_label: a.unit_label,
-      tenant_name: a.tenant_name,
-      current_rent: a.current_rent,
-      is_heated: a.is_heated,
+  // Live-Berechnung für Vorschau
+  const ergebnis = useMemo(() => berechneErhoehung({
+    investition_total: erhoehung.investition_total,
+    foerderbeitraege: erhoehung.foerderbeitraege,
+    wertvermehrend_prozent: erhoehung.wertvermehrend_prozent,
+    referenzzinssatz: erhoehung.referenzzinssatz,
+    zuschlag: erhoehung.zuschlag,
+    amortisation_prozent: erhoehung.amortisation_prozent,
+    unterhalt_prozent: erhoehung.unterhalt_prozent,
+    positionen: positionen.map(p => ({
+      wohnung_id: p.wohnung_id,
+      nettomiete: Number(p.wohnung?.nettomiete ?? 0),
+      beheizt: p.beheizt,
     })),
-  }), [calc, allocations]);
+  }), [erhoehung, positionen]);
 
   function showToast(msg: string, type: 'success' | 'error' = 'success') {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   }
 
-  function handleSave() {
+  function speichern() {
     startTransition(async () => {
       try {
-        await updateCalculation(calc.id, calc);
-        await recalculateAndSave(calc.id);
+        await aktualisiereErhoehung(erhoehung.id, {
+          titel: erhoehung.titel,
+          investition_total: erhoehung.investition_total,
+          foerderbeitraege: erhoehung.foerderbeitraege,
+          wertvermehrend_prozent: erhoehung.wertvermehrend_prozent,
+          referenzzinssatz: erhoehung.referenzzinssatz,
+          zuschlag: erhoehung.zuschlag,
+          amortisation_prozent: erhoehung.amortisation_prozent,
+          unterhalt_prozent: erhoehung.unterhalt_prozent,
+        });
+        await neuBerechnen(erhoehung.id);
         showToast('Berechnung gespeichert');
       } catch (e) {
         showToast(e instanceof Error ? e.message : 'Fehler beim Speichern', 'error');
@@ -61,9 +79,26 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
     });
   }
 
+  function handleLoeschen() {
+    if (!confirm('Berechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+    startTransition(async () => {
+      try {
+        await loescheErhoehung(erhoehung.id);
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : 'Fehler beim Löschen', 'error');
+      }
+    });
+  }
+
   function fmt(n: number) {
-    return n.toLocaleString('de-CH', { 
+    return n.toLocaleString('de-CH', {
       minimumFractionDigits: 2, maximumFractionDigits: 2,
+    });
+  }
+
+  function fmt0(n: number) {
+    return n.toLocaleString('de-CH', {
+      minimumFractionDigits: 0, maximumFractionDigits: 0,
     });
   }
 
@@ -74,14 +109,20 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
     { key: 'dokumente',   label: '4. Dokumente' },
   ];
 
+  const STATUS_LABEL: Record<string, string> = {
+    entwurf:     'Entwurf',
+    berechnet:   'Berechnet',
+    versendet:   'Versendet',
+    angefochten: 'Angefochten',
+    aktiv:       'Aktiv',
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 text-sm ${
-          toast.type === 'success' 
-            ? 'bg-green-600 text-white' 
-            : 'bg-red-600 text-white'
+          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {toast.msg}
         </div>
@@ -89,25 +130,66 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
+          <Link
+            href="/dashboard/mietzinserhoehung"
+            className="text-xs text-gray-500 hover:text-gray-900"
+          >
+            ← Zurück zur Übersicht
+          </Link>
           <input
             type="text"
-            value={calc.title}
-            onChange={(e) => setCalc({ ...calc, title: e.target.value })}
-            className="text-xl font-bold text-gray-900 bg-transparent border-0 outline-none w-full focus:ring-0 px-0"
+            value={erhoehung.titel}
+            onChange={(e) => setErhoehung({ ...erhoehung, titel: e.target.value })}
+            className="text-xl font-bold text-gray-900 bg-transparent border-0 outline-none w-full focus:ring-0 px-0 mt-1"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            Mietzinserhöhung gemäss Art. 269a OR / Art. 14 VMWG
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-gray-500">
+              {erhoehung.liegenschaft?.name}, {erhoehung.liegenschaft?.plz} {erhoehung.liegenschaft?.ort}
+            </span>
+            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+              {STATUS_LABEL[erhoehung.status] ?? erhoehung.status}
+            </span>
+          </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="px-4 py-2 bg-[hsl(214,76%,49%)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-        >
-          <span>💾</span>
-          {isPending ? 'Speichert...' : 'Speichern'}
-        </button>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={handleLoeschen}
+            disabled={isPending}
+            className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+          >
+            🗑 Löschen
+          </button>
+          <button
+            onClick={speichern}
+            disabled={isPending}
+            className="px-4 py-2 bg-[hsl(214,76%,49%)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {isPending ? 'Speichert...' : '💾 Speichern & Berechnen'}
+          </button>
+        </div>
+      </div>
+
+      {/* KPI-Karten Live-Vorschau */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard
+          label="Nettoinvestition"
+          value={`CHF ${fmt0(ergebnis.netto_investition)}`}
+        />
+        <KpiCard
+          label="Wertvermehrend"
+          value={`CHF ${fmt0(ergebnis.wertvermehrender_betrag)}`}
+          highlight="blue"
+        />
+        <KpiCard
+          label="Erhöhung/Mt. total"
+          value={`CHF ${fmt(ergebnis.monatliche_mehrbelastung)}`}
+          highlight="green"
+        />
+        <KpiCard
+          label="Erhöhung/Jahr"
+          value={`CHF ${fmt0(ergebnis.jaehrliche_mehrbelastung)}`}
+        />
       </div>
 
       {/* Tabs */}
@@ -140,59 +222,37 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
           </div>
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Total Investition (CHF)
-                </label>
-                <input
-                  type="number"
-                  value={calc.investment_total}
-                  onChange={(e) => setCalc({ 
-                    ...calc, investment_total: parseFloat(e.target.value) || 0,
-                  })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Förderbeiträge (CHF)
-                </label>
-                <input
-                  type="number"
-                  value={calc.subsidies}
-                  onChange={(e) => setCalc({ 
-                    ...calc, subsidies: parseFloat(e.target.value) || 0,
-                  })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]"
-                />
-              </div>
+              <FormField
+                label="Total Investition (CHF)"
+                value={erhoehung.investition_total}
+                onChange={v => setErhoehung({ ...erhoehung, investition_total: v })}
+              />
+              <FormField
+                label="Förderbeiträge (CHF)"
+                value={erhoehung.foerderbeitraege}
+                onChange={v => setErhoehung({ ...erhoehung, foerderbeitraege: v })}
+              />
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Wertvermehrender Anteil in % (typ. 50–70 % bei Systemwechsel)
-                </label>
-                <input
-                  type="number"
+                <FormField
+                  label="Wertvermehrender Anteil in % (typ. 50–70 % bei Systemwechsel)"
                   step="1"
-                  value={calc.value_added_pct}
-                  onChange={(e) => setCalc({ 
-                    ...calc, value_added_pct: parseFloat(e.target.value) || 0,
-                  })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]"
+                  value={erhoehung.wertvermehrend_prozent}
+                  onChange={v => setErhoehung({ ...erhoehung, wertvermehrend_prozent: v })}
                 />
               </div>
             </div>
 
             <div className="bg-blue-50 rounded-lg p-4 space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-700">Nettoinvestition:</span>
+                <span className="text-gray-700">Nettoinvestition (Investition − Förderbeiträge):</span>
                 <span className="font-mono font-semibold text-gray-900">
-                  CHF {fmt(result.netInvestment)}
+                  CHF {fmt(ergebnis.netto_investition)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Wertvermehrender Anteil:</span>
+                <span className="text-gray-700">Wertvermehrender Betrag:</span>
                 <span className="font-mono font-semibold text-[hsl(214,76%,49%)]">
-                  CHF {fmt(result.valueAddedAmount)}
+                  CHF {fmt(ergebnis.wertvermehrender_betrag)}
                 </span>
               </div>
             </div>
@@ -211,41 +271,41 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
           </div>
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField 
+              <FormField
                 label="Referenzzinssatz (%)" step="0.25"
-                value={calc.reference_rate}
-                onChange={v => setCalc({ ...calc, reference_rate: v })}
+                value={erhoehung.referenzzinssatz}
+                onChange={v => setErhoehung({ ...erhoehung, referenzzinssatz: v })}
               />
-              <FormField 
+              <FormField
                 label="Zuschlag (%)" step="0.1"
-                value={calc.surcharge}
-                onChange={v => setCalc({ ...calc, surcharge: v })}
+                value={erhoehung.zuschlag}
+                onChange={v => setErhoehung({ ...erhoehung, zuschlag: v })}
               />
-              <FormField 
+              <FormField
                 label="Amortisation (%)" step="0.5"
-                value={calc.amortization_pct}
-                onChange={v => setCalc({ ...calc, amortization_pct: v })}
+                value={erhoehung.amortisation_prozent}
+                onChange={v => setErhoehung({ ...erhoehung, amortisation_prozent: v })}
               />
-              <FormField 
+              <FormField
                 label="Unterhalt (%)" step="0.1"
-                value={calc.maintenance_pct}
-                onChange={v => setCalc({ ...calc, maintenance_pct: v })}
+                value={erhoehung.unterhalt_prozent}
+                onChange={v => setErhoehung({ ...erhoehung, unterhalt_prozent: v })}
               />
             </div>
 
             <div className="bg-blue-50 rounded-lg p-4 space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-700">Gesamtsatz pro Jahr:</span>
-                <span className="font-mono font-semibold">{result.totalRatePct.toFixed(2)}%</span>
+                <span className="font-mono font-semibold">{ergebnis.jahressatz_total.toFixed(2)}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Jährliche Mehrbelastung:</span>
-                <span className="font-mono font-semibold">CHF {fmt(result.yearlyIncrease)}</span>
+                <span className="font-mono font-semibold">CHF {fmt(ergebnis.jaehrliche_mehrbelastung)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Monatliche Mehrbelastung:</span>
                 <span className="font-mono font-semibold text-[hsl(214,76%,49%)]">
-                  CHF {fmt(result.monthlyIncrease)}
+                  CHF {fmt(ergebnis.monatliche_mehrbelastung)}
                 </span>
               </div>
             </div>
@@ -256,116 +316,116 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
       {/* Tab: Verteilung */}
       {tab === 'verteilung' && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-900">Verteilung auf Mietobjekte</h3>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Aufteilung nach aktuellem Nettomietzins.
-              </p>
-            </div>
-            <button
-              disabled={isPending}
-              onClick={() => startTransition(async () => {
-                try {
-                  await addAllocation(calc.id, {
-                    rental_unit_id: null,
-                    unit_label: 'Neues Objekt',
-                    tenant_name: null,
-                    current_rent: 0,
-                    is_heated: true,
-                  });
-                  showToast('Objekt hinzugefügt');
-                } catch (e) {
-                  showToast(e instanceof Error ? e.message : 'Fehler', 'error');
-                }
-              })}
-              className="text-sm text-[hsl(214,76%,49%)] hover:underline disabled:opacity-50 flex items-center gap-1"
-            >
-              <span>+</span> Objekt hinzufügen
-            </button>
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Verteilung auf Mietobjekte</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Aufteilung nach Anteil Nettomietzins. Nur beheizte Objekte zahlen die Erhöhung.
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">Objekt</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Whg-Nr.</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Bezeichnung</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600">Mieter</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">MZ/Mt.</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">Aktuell MZ</th>
                   <th className="px-4 py-2 text-center font-medium text-gray-600">Beheizt</th>
                   <th className="px-4 py-2 text-right font-medium text-gray-600">Anteil %</th>
                   <th className="px-4 py-2 text-right font-medium text-gray-600">Erhöhung</th>
                   <th className="px-4 py-2 text-right font-medium text-gray-600">Neuer MZ</th>
-                  <th className="px-4 py-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {allocations.length === 0 ? (
+                {positionen.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      Noch keine Objekte zugeordnet
+                      Keine Mietobjekte. Bitte zuerst eine Liegenschaft mit Wohnungen auswählen.
                     </td>
                   </tr>
                 ) : (
-                  allocations.map((a, i) => {
-                    const r = result.allocations[i];
+                  positionen.map((p, i) => {
+                    const erg = ergebnis.positionen[i];
+                    const aktuelleMiete = Number(p.wohnung?.nettomiete ?? 0);
                     return (
-                      <tr key={a.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 font-medium">{a.unit_label}</td>
-                        <td className="px-4 py-2 text-gray-600">{a.tenant_name ?? '–'}</td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            className="w-24 px-2 py-1 border border-gray-300 rounded text-right font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[hsl(214,76%,49%)]"
-                            value={a.current_rent}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              setAllocations(allocations.map(x =>
-                                x.id === a.id ? { ...x, current_rent: val } : x
-                              ));
-                            }}
-                          />
+                      <tr key={p.id} className={`hover:bg-gray-50 ${!p.beheizt ? 'opacity-60' : ''}`}>
+                        <td className="px-4 py-2 font-mono text-xs">
+                          {p.wohnung?.whg_nr ?? '–'}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="font-medium">{p.wohnung?.bezeichnung}</div>
+                          <div className="text-xs text-gray-400">{p.wohnung?.wohnungstyp}</div>
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-600">
+                          {p.mieter_namen?.length > 0 
+                            ? p.mieter_namen.join(', ')
+                            : <span className="text-gray-400">–</span>
+                          }
+                        </td>
+                        <td className="px-4 py-2 text-right font-mono">
+                          {fmt(aktuelleMiete)}
                         </td>
                         <td className="px-4 py-2 text-center">
                           <input
                             type="checkbox"
-                            checked={a.is_heated}
+                            checked={p.beheizt}
+                            disabled={isPending}
                             onChange={(e) => {
-                              setAllocations(allocations.map(x =>
-                                x.id === a.id ? { ...x, is_heated: e.target.checked } : x
+                              const beheizt = e.target.checked;
+                              setPositionen(positionen.map(x =>
+                                x.id === p.id ? { ...x, beheizt } : x
                               ));
+                              startTransition(() => 
+                                setzeBeheizt(p.id, erhoehung.id, beheizt).catch(e =>
+                                  showToast(e.message, 'error')
+                                )
+                              );
                             }}
                             className="h-4 w-4"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right font-mono text-xs">
-                          {r.share_pct.toFixed(2)}%
+                        <td className="px-4 py-2 text-right font-mono text-xs text-gray-600">
+                          {erg.anteil_prozent.toFixed(2)}%
                         </td>
                         <td className="px-4 py-2 text-right font-mono">
-                          {fmt(r.monthly_increase)}
+                          {erg.monatliche_erhoehung > 0 ? (
+                            <span className="text-[hsl(214,76%,49%)]">
+                              +{fmt(erg.monatliche_erhoehung)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">–</span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-right font-mono font-semibold">
-                          {fmt(r.new_rent)}
-                        </td>
-                        <td className="px-4 py-2">
-                          <button
-                            onClick={() => startTransition(async () => {
-                              try {
-                                await deleteAllocation(a.id, calc.id);
-                                setAllocations(allocations.filter(x => x.id !== a.id));
-                              } catch (e) {
-                                showToast(e instanceof Error ? e.message : 'Fehler', 'error');
-                              }
-                            })}
-                            className="text-red-600 hover:text-red-800 text-xs"
-                          >
-                            🗑
-                          </button>
+                          {fmt(erg.neuer_nettomietzins)}
                         </td>
                       </tr>
                     );
                   })
                 )}
               </tbody>
+              {positionen.length > 0 && (
+                <tfoot className="bg-gray-50 border-t border-gray-200">
+                  <tr>
+                    <td colSpan={3} className="px-4 py-3 font-semibold text-gray-900">
+                      Total {positionen.filter(p => p.beheizt).length} beheizte / {positionen.length} Objekte
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold">
+                      {fmt(positionen.filter(p => p.beheizt).reduce((s, p) => 
+                        s + Number(p.wohnung?.nettomiete ?? 0), 0))}
+                    </td>
+                    <td></td>
+                    <td className="px-4 py-3 text-right text-xs text-gray-500">100%</td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold text-[hsl(214,76%,49%)]">
+                      +{fmt(ergebnis.monatliche_mehrbelastung)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold">
+                      {fmt(positionen.filter(p => p.beheizt).reduce((s, p, i) => 
+                        s + ergebnis.positionen[positionen.indexOf(p)].neuer_nettomietzins, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
@@ -373,35 +433,35 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
 
       {/* Tab: Dokumente */}
       {tab === 'dokumente' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Rechtliche Hinweise & Dokumente</h3>
+        <div className="space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-2">
+            <p className="font-semibold text-amber-900">⚠️ Wichtige Hinweise zur Mitteilung</p>
+            <ul className="space-y-1 text-amber-900 list-disc list-inside">
+              <li>Die Erhöhung muss auf dem <strong>amtlichen Formular Kanton Zürich</strong> mitgeteilt werden.</li>
+              <li>Versand <strong>eingeschrieben</strong>, mind. 10 Tage vor Beginn der Kündigungsfrist.</li>
+              <li>Mieter haben <strong>30 Tage Anfechtungsfrist</strong> bei der Schlichtungsbehörde Bezirk Dielsdorf.</li>
+              <li>Bei mehreren Vertragspartnern: an <strong>alle einzeln</strong> zustellen.</li>
+            </ul>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-amber-600">⚠️</span>
-                <div className="flex-1 space-y-2">
-                  <p>
-                    Die Erhöhung muss auf dem <strong>amtlichen Formular Kanton Zürich</strong> mitgeteilt werden.
-                  </p>
-                  <p>
-                    Versand <strong>eingeschrieben</strong>, mind. 10 Tage vor Beginn der Kündigungsfrist.
-                  </p>
-                  <p>
-                    Mieter haben <strong>30 Tage Anfechtungsfrist</strong> bei der Schlichtungsbehörde.
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <button
-              type="button"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
-            >
-              <span>📄</span>
-              Begründungstext für Formular generieren
-            </button>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Begründungstext für amtliches Formular</h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Wird automatisch generiert beim Klick auf "Speichern & Berechnen".
+              </p>
+            </div>
+            <div className="p-5">
+              {erhoehung.begruendung_text ? (
+                <pre className="bg-gray-50 rounded-lg p-4 text-xs whitespace-pre-wrap font-mono text-gray-800">
+                  {erhoehung.begruendung_text}
+                </pre>
+              ) : (
+                <p className="text-gray-400 text-sm italic">
+                  Klicken Sie auf "Speichern & Berechnen" um den Begründungstext zu generieren.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -409,12 +469,13 @@ export function BerechnungForm({ calculation, allocations: initialAllocations }:
   );
 }
 
-// ── Helper-Komponente: FormField ────────────────────────────
-function FormField({ 
-  label, value, onChange, step = '1' 
-}: { 
-  label: string; 
-  value: number; 
+// ── Helper-Komponenten ──────────────────────────────────────
+
+function FormField({
+  label, value, onChange, step = '1',
+}: {
+  label: string;
+  value: number;
   onChange: (v: number) => void;
   step?: string;
 }) {
@@ -430,6 +491,26 @@ function FormField({
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]"
       />
+    </div>
+  );
+}
+
+function KpiCard({
+  label, value, highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: 'green' | 'blue';
+}) {
+  const valueColor =
+    highlight === 'green' ? 'text-green-600' :
+    highlight === 'blue' ? 'text-[hsl(214,76%,49%)]' :
+    'text-gray-900';
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className={`text-xl font-bold ${valueColor}`}>{value}</p>
     </div>
   );
 }
