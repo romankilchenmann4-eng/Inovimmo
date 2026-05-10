@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-// ── Types ────────────────────────────────────────────────
 type Liegenschaft = {
   id: string
   name: string
@@ -52,23 +51,27 @@ type Mietverhaeltnis = {
   mieter: Mieter
 }
 
-// Wohnungstyp → Label + Icon + Farbe
 const TYP_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  wohnung:           { label: 'Wohnungen',         icon: '🏠', color: 'bg-blue-50' },
-  bastelraum:        { label: 'Bastelräume',       icon: '🔧', color: 'bg-amber-50' },
-  parkplatz_aussen:  { label: 'Parkplätze',        icon: '🚗', color: 'bg-gray-50' },
-  einstellgarage:    { label: 'Einstellgaragen',   icon: '🏘️', color: 'bg-slate-50' },
-  gewerbe:           { label: 'Gewerbe',           icon: '🏢', color: 'bg-purple-50' },
-  lager:             { label: 'Lager',             icon: '📦', color: 'bg-stone-50' },
-  sonstiges:         { label: 'Sonstiges',         icon: '📌', color: 'bg-neutral-50' },
+  wohnung: { label: 'Wohnungen', icon: '🏠', color: 'bg-blue-50' },
+  bastelraum: { label: 'Bastelräume', icon: '🔧', color: 'bg-amber-50' },
+  parkplatz_aussen: { label: 'Parkplätze', icon: '🚗', color: 'bg-gray-50' },
+  einstellgarage: { label: 'Einstellgaragen', icon: '🏘️', color: 'bg-slate-50' },
+  gewerbe: { label: 'Gewerbe', icon: '🏢', color: 'bg-purple-50' },
+  lager: { label: 'Lager', icon: '📦', color: 'bg-stone-50' },
+  sonstiges: { label: 'Sonstiges', icon: '📌', color: 'bg-neutral-50' },
 }
 
-// CHF-Format
-const fmt = (n: number) => 
-  n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt = (n: number) =>
+  n.toLocaleString('de-CH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 
 const fmt0 = (n: number) =>
-  n.toLocaleString('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  n.toLocaleString('de-CH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
 
 export default function ObjektDetail() {
   const { id } = useParams()
@@ -84,25 +87,25 @@ export default function ObjektDetail() {
     const load = async () => {
       setLoading(true)
 
-      // Liegenschaft
       const { data: l } = await supabase
         .from('liegenschaften')
         .select('*')
         .eq('id', id)
         .single()
+
       setLiegenschaft(l)
 
-      // Wohnungen / Objekte
       const { data: w } = await supabase
         .from('wohnungen')
         .select('*')
         .eq('liegenschaft_id', id)
         .order('whg_nr', { ascending: true })
+
       setWohnungen(w || [])
 
-      // Alle Mietverhältnisse mit Mieter-Daten in einem Query
       if (w && w.length > 0) {
-        const wohnungIds = w.map(x => x.id)
+        const wohnungIds = w.map((x) => x.id)
+
         const { data: mv } = await supabase
           .from('mietverhaeltnisse')
           .select(`
@@ -115,8 +118,10 @@ export default function ObjektDetail() {
             )
           `)
           .in('wohnung_id', wohnungIds)
-        
+
         setMietverhaeltnisse((mv as any) || [])
+      } else {
+        setMietverhaeltnisse([])
       }
 
       setLoading(false)
@@ -125,51 +130,61 @@ export default function ObjektDetail() {
     if (id) load()
   }, [id, supabase])
 
-  // ── Berechnungen ────────────────────────────────────────
-  const wohnungenOnly = wohnungen.filter(w => w.wohnungstyp === 'wohnung')
-  const wohnungenBelegt = wohnungenOnly.filter(w => 
-    mietverhaeltnisse.some(mv => mv.wohnung_id === w.id)
+  const wohnungenOnly = wohnungen.filter((w) => w.wohnungstyp === 'wohnung')
+
+  const wohnungenBelegt = wohnungenOnly.filter((w) =>
+    mietverhaeltnisse.some((mv) => mv.wohnung_id === w.id)
   )
-  
-  const mieteMonat = wohnungen.reduce((sum, w) => 
-    sum + Number(w.nettomiete || 0), 0
+
+  const mieteMonat = wohnungen.reduce(
+    (sum, w) => sum + Number(w.nettomiete || 0),
+    0
   )
-  const nkMonat = wohnungen.reduce((sum, w) => 
-    sum + Number(w.nebenkosten_akonto || 0), 0
+
+  const nkMonat = wohnungen.reduce(
+    (sum, w) => sum + Number(w.nebenkosten_akonto || 0),
+    0
   )
+
   const totalMonat = mieteMonat + nkMonat
   const totalJahr = totalMonat * 12
 
-  const belegungProzent = wohnungenOnly.length > 0
-    ? Math.round((wohnungenBelegt.length / wohnungenOnly.length) * 100)
-    : 0
+  const belegungProzent =
+    wohnungenOnly.length > 0
+      ? Math.round((wohnungenBelegt.length / wohnungenOnly.length) * 100)
+      : 0
 
-  // Mieter pro Wohnung gruppieren (Hauptperson zuerst)
-  const getMieterFor = (wohnungId: string) => 
+  const getMieterFor = (wohnungId: string) =>
     mietverhaeltnisse
-      .filter(mv => mv.wohnung_id === wohnungId)
+      .filter((mv) => mv.wohnung_id === wohnungId)
       .sort((a, b) => Number(b.ist_hauptperson) - Number(a.ist_hauptperson))
 
-  // Wohnungen nach Typ gruppieren
   const grouped: Record<string, Wohnung[]> = {}
-  wohnungen.forEach(w => {
+
+  wohnungen.forEach((w) => {
     const typ = w.wohnungstyp || 'sonstiges'
+
     if (!grouped[typ]) grouped[typ] = []
+
     grouped[typ].push(w)
   })
 
-  // Reihenfolge der Typen
   const typReihenfolge = [
-    'wohnung', 'gewerbe', 'bastelraum', 
-    'parkplatz_aussen', 'einstellgarage', 'lager', 'sonstiges'
+    'wohnung',
+    'gewerbe',
+    'bastelraum',
+    'parkplatz_aussen',
+    'einstellgarage',
+    'lager',
+    'sonstiges',
   ]
 
   if (loading) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/3" />
+          <div className="h-32 bg-gray-200 rounded" />
         </div>
       </div>
     )
@@ -177,32 +192,42 @@ export default function ObjektDetail() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center text-2xl">
             🏢
           </div>
+
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{liegenschaft?.name}</h1>
+              <h1 className="text-2xl font-bold">
+                {liegenschaft?.name}
+              </h1>
+
               <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
                 {liegenschaft?.objekttyp}
               </span>
+
               {liegenschaft?.externe_referenz && (
                 <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
                   Ref. {liegenschaft.externe_referenz}
                 </span>
               )}
             </div>
+
             <p className="text-sm text-gray-500 mt-0.5">
-              {liegenschaft?.strasse} {liegenschaft?.hausnummer}, {liegenschaft?.plz} {liegenschaft?.ort}
+              {liegenschaft?.strasse} {liegenschaft?.hausnummer},{' '}
+              {liegenschaft?.plz} {liegenschaft?.ort}
             </p>
+
             {liegenschaft?.baujahr && (
-              <p className="text-xs text-gray-400 mt-0.5">Baujahr {liegenschaft.baujahr}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Baujahr {liegenschaft.baujahr}
+              </p>
             )}
           </div>
         </div>
+
         <button
           onClick={() => router.back()}
           className="text-sm text-gray-500 hover:text-gray-900"
@@ -211,35 +236,49 @@ export default function ObjektDetail() {
         </button>
       </div>
 
-      {/* KPI-Karten */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard 
-          label="Wohnungen" 
-          value={wohnungenOnly.length.toString()} 
-          sublabel={`+ ${wohnungen.length - wohnungenOnly.length} Nebenobjekte`} 
+        <KpiCard
+          label="Wohnungen"
+          value={wohnungenOnly.length.toString()}
+          sublabel={`+ ${wohnungen.length - wohnungenOnly.length} Nebenobjekte`}
         />
-        <KpiCard 
-          label="Belegt" 
-          value={`${wohnungenBelegt.length}/${wohnungenOnly.length}`} 
+
+        <KpiCard
+          label="Belegt"
+          value={`${wohnungenBelegt.length}/${wohnungenOnly.length}`}
         />
-        <KpiCard 
-          label="Belegung" 
+
+        <KpiCard
+          label="Belegung"
           value={`${belegungProzent}%`}
-          highlight={belegungProzent === 100 ? 'green' : belegungProzent > 0 ? 'blue' : 'gray'}
+          highlight={
+            belegungProzent === 100
+              ? 'green'
+              : belegungProzent > 0
+                ? 'blue'
+                : 'gray'
+          }
         />
-        <KpiCard 
-          label="Bruttomiete/Mt." 
+
+        <KpiCard
+          label="Bruttomiete/Mt."
           value={`CHF ${fmt0(totalMonat)}`}
           sublabel={`Jahr: CHF ${fmt0(totalJahr)}`}
         />
       </div>
 
-      {/* Mietobjekte gruppiert nach Typ */}
-      {typReihenfolge.map(typ => {
+      {typReihenfolge.map((typ) => {
         const items = grouped[typ]
+
         if (!items || items.length === 0) return null
+
         const cfg = TYP_CONFIG[typ] || TYP_CONFIG.sonstiges
-        const sumMiete = items.reduce((s, w) => s + Number(w.nettomiete || 0) + Number(w.nebenkosten_akonto || 0), 0)
+
+        const sumMiete = items.reduce(
+          (s, w) =>
+            s + Number(w.nettomiete || 0) + Number(w.nebenkosten_akonto || 0),
+          0
+        )
 
         return (
           <div key={typ} className="bg-white rounded-xl border overflow-hidden">
@@ -247,8 +286,11 @@ export default function ObjektDetail() {
               <div className="font-semibold flex items-center gap-2">
                 <span>{cfg.icon}</span>
                 <span>{cfg.label}</span>
-                <span className="text-xs text-gray-500 font-normal">({items.length})</span>
+                <span className="text-xs text-gray-500 font-normal">
+                  ({items.length})
+                </span>
               </div>
+
               {sumMiete > 0 && (
                 <div className="text-sm text-gray-600">
                   Total: CHF {fmt(sumMiete)}/Mt.
@@ -257,12 +299,18 @@ export default function ObjektDetail() {
             </div>
 
             <div className="divide-y">
-              {items.map(w => {
+              {items.map((w) => {
                 const mvs = getMieterFor(w.id)
+
                 return (
-                  <div key={w.id} className="p-4 hover:bg-gray-50 transition">
+                  <div
+                    key={w.id}
+                    onClick={() =>
+                      router.push(`/dashboard/objekte/${id}/wohnungen/${w.id}`)
+                    }
+                    className="p-4 hover:bg-gray-50 transition cursor-pointer"
+                  >
                     <div className="flex items-start justify-between gap-4">
-                      {/* Linke Spalte: Bezeichnung + Mieter */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {w.whg_nr && (
@@ -270,62 +318,112 @@ export default function ObjektDetail() {
                               {w.whg_nr}
                             </span>
                           )}
-                          <span className="font-medium">{w.bezeichnung}</span>
+
+                          <span className="font-medium">
+                            {w.bezeichnung}
+                          </span>
+
                           {!w.beheizt && typ === 'wohnung' && (
-                            <span className="text-xs text-orange-600">❄️ unbeheizt</span>
+                            <span className="text-xs text-orange-600">
+                              ❄️ unbeheizt
+                            </span>
                           )}
                         </div>
 
-                        {/* Wohnungs-Details */}
-                        <div className="text-xs text-gray-500 flex gap-3 mb-2">
+                        <div className="text-xs text-gray-500 flex gap-3 mb-2 flex-wrap">
                           {w.zimmer > 0 && <span>{w.zimmer} Zimmer</span>}
-                          {w.flaeche_m2 && Number(w.flaeche_m2) > 0 && <span>{w.flaeche_m2} m²</span>}
-                          {w.verteilschluessel_prozent && (
-                            <span>{w.verteilschluessel_prozent}% Anteil</span>
+
+                          {w.flaeche_m2 && Number(w.flaeche_m2) > 0 && (
+                            <span>{w.flaeche_m2} m²</span>
                           )}
+
+                          {w.verteilschluessel_prozent && (
+                            <span>
+                              {w.verteilschluessel_prozent}% Anteil
+                            </span>
+                          )}
+
                           {w.kuendigungstermine && (
-                            <span>Kündigung: {w.kuendigungstermine}</span>
+                            <span>
+                              Kündigung: {w.kuendigungstermine}
+                            </span>
                           )}
                         </div>
 
-                        {/* Mieter */}
                         {mvs.length > 0 ? (
                           <div className="space-y-0.5">
                             {mvs.map((mv, i) => {
                               const m = mv.mieter
+
                               if (!m) return null
+
                               return (
-                                <div key={i} className="text-sm flex items-center gap-2">
+                                <div
+                                  key={i}
+                                  className="text-sm flex items-center gap-2"
+                                >
                                   <span className="text-xs">
-                                    {mv.ist_hauptperson ? '⭐' : mv.ist_vertragspartner ? '📝' : '·'}
+                                    {mv.ist_hauptperson
+                                      ? '⭐'
+                                      : mv.ist_vertragspartner
+                                        ? '📝'
+                                        : '·'}
                                   </span>
-                                  <span className={mv.ist_hauptperson ? 'font-medium' : 'text-gray-600'}>
-                                    {[m.vorname, m.nachname].filter(Boolean).join(' ')}
+
+                                  <span
+                                    className={
+                                      mv.ist_hauptperson
+                                        ? 'font-medium'
+                                        : 'text-gray-600'
+                                    }
+                                  >
+                                    {[m.vorname, m.nachname]
+                                      .filter(Boolean)
+                                      .join(' ')}
                                   </span>
-                                  {mv.ist_hauptperson && mvs.some(x => x.ist_vertragspartner && !x.ist_hauptperson) && (
-                                    <span className="text-xs text-gray-400">(Hauptperson)</span>
-                                  )}
-                                  {mv.ist_vertragspartner && !mv.ist_hauptperson && (
-                                    <span className="text-xs text-gray-400">(Vertragspartner)</span>
-                                  )}
+
+                                  {mv.ist_hauptperson &&
+                                    mvs.some(
+                                      (x) =>
+                                        x.ist_vertragspartner &&
+                                        !x.ist_hauptperson
+                                    ) && (
+                                      <span className="text-xs text-gray-400">
+                                        (Hauptperson)
+                                      </span>
+                                    )}
+
+                                  {mv.ist_vertragspartner &&
+                                    !mv.ist_hauptperson && (
+                                      <span className="text-xs text-gray-400">
+                                        (Vertragspartner)
+                                      </span>
+                                    )}
                                 </div>
                               )
                             })}
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-400 italic">Kein Mieter zugeordnet</div>
+                          <div className="text-sm text-gray-400 italic">
+                            Kein Mieter zugeordnet
+                          </div>
                         )}
                       </div>
 
-                      {/* Rechte Spalte: Mietzins */}
                       <div className="text-right flex-shrink-0">
                         {Number(w.nettomiete) > 0 ? (
                           <>
                             <div className="font-semibold">
-                              CHF {fmt(Number(w.nettomiete) + Number(w.nebenkosten_akonto))}
+                              CHF{' '}
+                              {fmt(
+                                Number(w.nettomiete) +
+                                  Number(w.nebenkosten_akonto)
+                              )}
                             </div>
+
                             <div className="text-xs text-gray-400">
                               Netto {fmt(Number(w.nettomiete))}
+
                               {Number(w.nebenkosten_akonto) > 0 && (
                                 <> + NK {fmt(Number(w.nebenkosten_akonto))}</>
                               )}
@@ -354,26 +452,33 @@ export default function ObjektDetail() {
   )
 }
 
-// ── KPI-Karte ──────────────────────────────────────────
-function KpiCard({ 
-  label, value, sublabel, highlight 
-}: { 
+function KpiCard({
+  label,
+  value,
+  sublabel,
+  highlight,
+}: {
   label: string
   value: string
   sublabel?: string
   highlight?: 'green' | 'blue' | 'gray'
 }) {
-  const valueColor = 
-    highlight === 'green' ? 'text-green-600' :
-    highlight === 'blue' ? 'text-blue-600' :
-    'text-gray-900'
+  const valueColor =
+    highlight === 'green'
+      ? 'text-green-600'
+      : highlight === 'blue'
+        ? 'text-blue-600'
+        : 'text-gray-900'
 
   return (
     <div className="bg-white rounded-xl border p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
+
       {sublabel && (
-        <p className="text-xs text-gray-400 mt-1">{sublabel}</p>
+        <p className="text-xs text-gray-400 mt-1">
+          {sublabel}
+        </p>
       )}
     </div>
   )
