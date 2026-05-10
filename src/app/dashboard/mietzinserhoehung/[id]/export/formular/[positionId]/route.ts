@@ -185,7 +185,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
 
   const pdfBytes = await pdfDoc.save();
 
-  return new NextResponse(pdfBytes, {
+  return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="amtliches-formular-${wohnung?.whg_nr ?? positionId}.pdf"`,
