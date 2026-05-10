@@ -11,7 +11,11 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
   const email = String(formData.get('email') || '').trim();
   const full_name = String(formData.get('full_name') || '').trim();
   const role = String(formData.get('role') || 'mieter').trim();
-  const liegenschaft_id = String(formData.get('liegenschaft_id') || '').trim();
+
+  const liegenschaftIds = formData
+    .getAll('liegenschaft_ids')
+    .map((v) => String(v))
+    .filter(Boolean);
 
   if (!email) {
     throw new Error('E-Mail fehlt');
@@ -41,13 +45,17 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
     throw new Error(profileError.message);
   }
 
-  if (liegenschaft_id) {
+  if (liegenschaftIds.length > 0) {
+    const inserts = liegenschaftIds.map((liegenschaft_id) => ({
+      user_id: userId,
+      liegenschaft_id,
+      rolle: role,
+    }));
+
     const { error: berechtigungError } = await supabaseAdmin
       .from('liegenschaft_berechtigungen')
-      .insert({
-        user_id: userId,
-        liegenschaft_id,
-        rolle: role,
+      .upsert(inserts, {
+        onConflict: 'user_id,liegenschaft_id',
       });
 
     if (berechtigungError) {
