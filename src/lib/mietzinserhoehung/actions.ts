@@ -54,6 +54,53 @@ export async function erstelleErhoehung(formData: FormData) {
     throw new Error(error.message);
   }
 
+  const { data: wohnungen, error: wohnungenError } = await supabase
+    .from('wohnungen')
+    .select(
+      'id, nettomiete, nebenkosten_akonto, beheizt, verteilschluessel_prozent, flaeche_m2'
+    )
+    .eq('liegenschaft_id', liegenschaft_id);
+
+  if (wohnungenError) {
+    console.error('LADE WOHNUNGEN ERROR:', {
+      message: wohnungenError.message,
+      details: wohnungenError.details,
+      hint: wohnungenError.hint,
+      code: wohnungenError.code,
+    });
+
+    throw new Error(wohnungenError.message);
+  }
+
+  if (wohnungen && wohnungen.length > 0) {
+    const positionen = wohnungen.map((w) => ({
+      mietzins_erhoehung_id: data.id,
+      wohnung_id: w.id,
+      miete_alt: Number(w.nettomiete || 0),
+      nebenkosten_alt: Number(w.nebenkosten_akonto || 0),
+      verteilschluessel_prozent: Number(w.verteilschluessel_prozent || 0),
+      flaeche_m2: Number(w.flaeche_m2 || 0),
+      beheizt: Boolean(w.beheizt),
+      erhoehung_betrag: 0,
+      miete_neu: Number(w.nettomiete || 0),
+    }));
+
+    const { error: positionenError } = await supabase
+      .from('mietzins_erhoehung_positionen')
+      .insert(positionen);
+
+    if (positionenError) {
+      console.error('ERSTELLE POSITIONEN ERROR:', {
+        message: positionenError.message,
+        details: positionenError.details,
+        hint: positionenError.hint,
+        code: positionenError.code,
+      });
+
+      throw new Error(positionenError.message);
+    }
+  }
+
   redirect(`/dashboard/mietzinserhoehung/${data.id}`);
 }
 
@@ -82,9 +129,7 @@ export async function aktualisiereErhoehung(
 // ============================================================
 // NEU BERECHNEN
 // ============================================================
-export async function neuBerechnen(
-  id: string
-): Promise<void> {
+export async function neuBerechnen(id: string): Promise<void> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -138,9 +183,7 @@ export async function setzeBeheizt(
 // ============================================================
 // LÖSCHEN
 // ============================================================
-export async function loescheErhoehung(
-  id: string
-): Promise<void> {
+export async function loescheErhoehung(id: string): Promise<void> {
   const supabase = await createClient();
 
   const { error } = await supabase
