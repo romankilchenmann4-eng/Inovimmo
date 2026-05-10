@@ -109,6 +109,9 @@ export async function aktualisiereErhoehung(
 
 // ============================================================
 // SPEICHERN UND NEU BERECHNEN
+// Verteilschlüssel wird innerhalb dieser Mietzinserhöhung normalisiert.
+// Beispiel: Wenn Summe = 200, wird jede Position anteilig durch 200 geteilt.
+// Dadurch wird die Investition korrekt auf die ausgewählten Wohnungen verteilt.
 // ============================================================
 export async function speichereUndBerechneErhoehung(
   id: string,
@@ -170,8 +173,17 @@ export async function speichereUndBerechneErhoehung(
     throw new Error(posError.message);
   }
 
+  const summeVerteilschluessel = (positionen ?? []).reduce(
+    (sum: number, p: any) => sum + Number(p.verteilschluessel_prozent || 0),
+    0
+  );
+
   for (const p of positionen ?? []) {
-    const anteil = Number(p.verteilschluessel_prozent || 0) / 100;
+    const anteil =
+      summeVerteilschluessel > 0
+        ? Number(p.verteilschluessel_prozent || 0) / summeVerteilschluessel
+        : 0;
+
     const erhoehungMonatlich = monatTotal * anteil;
     const alteMiete = Number(p.miete_alt || 0);
     const neueMiete = alteMiete + erhoehungMonatlich;
@@ -185,7 +197,7 @@ export async function speichereUndBerechneErhoehung(
         erhoehung_monatlich: erhoehungMonatlich,
         miete_neu: neueMiete,
         begruendung:
-          'Berechnung auf Basis der wertvermehrenden Investition und des Verteilschlüssels.',
+          'Berechnung auf Basis der wertvermehrenden Investition und des normalisierten Verteilschlüssels.',
         berechnet_am: new Date().toISOString(),
       })
       .eq('id', p.id);
