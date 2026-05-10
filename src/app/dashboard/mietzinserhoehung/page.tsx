@@ -10,8 +10,18 @@ export default async function MietzinsErhoehungPage() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('SUPABASE ERROR mietzins_erhoehungen:', error);
-    throw new Error(error.message);
+    console.error('SUPABASE ERROR mietzins_erhoehungen:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
+    return (
+      <div className="rounded border border-red-300 bg-red-50 p-6 text-sm text-red-700">
+        Fehler beim Laden der Mietzinserhöhungen: {error.message}
+      </div>
+    );
   }
 
   const erhoehungen = data ?? [];
