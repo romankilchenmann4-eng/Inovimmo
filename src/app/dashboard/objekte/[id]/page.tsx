@@ -345,7 +345,7 @@ export default function ObjektDetail() {
 
                           {w.kuendigungstermine && (
                             <span>
-                              Kündigung: {w.kuendigungstermine}
+                              Kündigung: {formatKuendigungstermine(w.kuendigungstermine)}
                             </span>
                           )}
                         </div>
@@ -482,4 +482,35 @@ function KpiCard({
       )}
     </div>
   )
+}
+
+function formatKuendigungstermine(value?: string | null) {
+  if (!value) {
+    return '-'
+  }
+
+  const monate: Record<string, string> = {
+    '01': 'Januar',
+    '02': 'Februar',
+    '03': 'März',
+    '04': 'April',
+    '05': 'Mai',
+    '06': 'Juni',
+    '07': 'Juli',
+    '08': 'August',
+    '09': 'September',
+    '10': 'Oktober',
+    '11': 'November',
+    '12': 'Dezember',
+  }
+
+  const cleaned = value.replace(/\D/g, '')
+  const parts = cleaned.match(/.{1,2}/g) ?? []
+
+  const formatted = parts
+    .map((m) => monate[m])
+    .filter(Boolean)
+    .join(', ')
+
+  return formatted || value
 }
