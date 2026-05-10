@@ -42,8 +42,9 @@ const NAV: NavItem[] = [
   { href: "/dashboard/marktplatz", label: "Marktplatz", icon: "🛒", roles: ["admin", "verwalter"], section: "Services" },
 
   { href: "/dashboard/mieter", label: "Meine Wohnung", icon: "🏠", roles: ["mieter"], section: "Mein Bereich" },
-
   { href: "/dashboard/dienstleister", label: "Mein Betrieb", icon: "🔧", roles: ["dienstleister"], section: "Mein Betrieb" },
+
+  { href: "/dashboard/admin/benutzer", label: "Benutzerverwaltung", icon: "👥", roles: ["admin"], section: "Admin" },
 
   { href: "/dashboard/einstellungen", label: "Einstellungen", icon: "⚙️", roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"], section: "Konto" },
 ];
