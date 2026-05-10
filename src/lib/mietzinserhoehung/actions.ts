@@ -39,8 +39,6 @@ export async function erstelleErhoehung(formData: FormData) {
       sonstige_abzuege: 0,
       wertvermehrend_prozent: 70,
       kapitalisierungssatz: 8,
-      netto_investition: 0,
-      jahressatz_total: 0,
     })
     .select('id')
     .single();
@@ -120,8 +118,13 @@ export async function speichereUndBerechneErhoehung(
   const foerderbeitraege = Number(formData.get('foerderbeitraege') || 0);
   const sonstigeKosten = Number(formData.get('sonstige_kosten') || 0);
   const sonstigeAbzuege = Number(formData.get('sonstige_abzuege') || 0);
-  const wertvermehrendProzent = Number(formData.get('wertvermehrend_prozent') || 70);
-  const kapitalisierungssatz = Number(formData.get('kapitalisierungssatz') || 8);
+  const wertvermehrendProzent = Number(
+    formData.get('wertvermehrend_prozent') || 70
+  );
+  const kapitalisierungssatz = Number(
+    formData.get('kapitalisierungssatz') || 8
+  );
+
   const titel = formData.get('titel');
   const grund = formData.get('grund');
   const status = formData.get('status');
@@ -151,8 +154,6 @@ export async function speichereUndBerechneErhoehung(
       sonstige_abzuege: sonstigeAbzuege,
       wertvermehrend_prozent: wertvermehrendProzent,
       kapitalisierungssatz,
-      netto_investition: nettoInvestition,
-      jahressatz_total: jahressatzTotal,
     })
     .eq('id', id);
 
@@ -220,8 +221,14 @@ export async function neuBerechnen(id: string): Promise<void> {
   formData.set('foerderbeitraege', String(data.foerderbeitraege ?? 0));
   formData.set('sonstige_kosten', String(data.sonstige_kosten ?? 0));
   formData.set('sonstige_abzuege', String(data.sonstige_abzuege ?? 0));
-  formData.set('wertvermehrend_prozent', String(data.wertvermehrend_prozent ?? 70));
-  formData.set('kapitalisierungssatz', String(data.kapitalisierungssatz ?? 8));
+  formData.set(
+    'wertvermehrend_prozent',
+    String(data.wertvermehrend_prozent ?? 70)
+  );
+  formData.set(
+    'kapitalisierungssatz',
+    String(data.kapitalisierungssatz ?? 8)
+  );
 
   await speichereUndBerechneErhoehung(id, formData);
 }
