@@ -1,5 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import {
+  aktualisiereErhoehung,
+  loescheErhoehung,
+} from '@/lib/mietzinserhoehung/actions';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -9,16 +14,16 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: erhoehung, error: erhoehungError } = await supabase
+  const { data: erhoehung, error } = await supabase
     .from('mietzins_erhoehungen')
     .select('*')
     .eq('id', id)
     .maybeSingle();
 
-  if (erhoehungError) {
+  if (error) {
     return (
       <div className="rounded border border-red-300 bg-red-50 p-6 text-sm text-red-700">
-        Fehler beim Laden der Mietzinserhöhung: {erhoehungError.message}
+        Fehler beim Laden: {error.message}
       </div>
     );
   }
@@ -27,182 +32,154 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
     return <div>Mietzinserhöhung nicht gefunden.</div>;
   }
 
-  const { data: positionen, error: positionenError } = await supabase
-    .from('mietzins_erhoehung_positionen')
-    .select('*')
-    .eq('mietzins_erhoehung_id', id);
+  async function speichern(formData: FormData) {
+    'use server';
 
-  if (positionenError) {
-    return (
-      <div className="rounded border border-red-300 bg-red-50 p-6 text-sm text-red-700">
-        Fehler beim Laden der Wohnungen: {positionenError.message}
-      </div>
-    );
+    const titel = formData.get('titel');
+    const grund = formData.get('grund');
+    const status = formData.get('status');
+    const investition_total = formData.get('investition_total');
+    const netto_investition = formData.get('netto_investition');
+    const jahressatz_total = formData.get('jahressatz_total');
+
+    await aktualisiereErhoehung(id, {
+      titel: typeof titel === 'string' ? titel : 'Mietzinserhöhung',
+      grund: typeof grund === 'string' ? grund : 'renovation',
+      status: typeof status === 'string' ? status : 'entwurf',
+      investition_total: Number(investition_total || 0),
+      netto_investition: Number(netto_investition || 0),
+      jahressatz_total: Number(jahressatz_total || 0),
+    });
+
+    redirect(`/dashboard/mietzinserhoehung/${id}`);
   }
 
-  const wohnungIds = (positionen ?? [])
-    .map((p) => p.wohnung_id)
-    .filter(Boolean);
-
-  const { data: wohnungen } = wohnungIds.length
-    ? await supabase
-        .from('wohnungen')
-        .select('*')
-        .in('id', wohnungIds)
-    : { data: [] };
-
-  const wohnungMap = new Map(
-    (wohnungen ?? []).map((w) => [w.id, w])
-  );
-
-  const rows = (positionen ?? []).map((p) => {
-    const w = wohnungMap.get(p.wohnung_id) ?? {};
-
-    return {
-      id: p.id,
-      wohnung_id: p.wohnung_id,
-      wohnung: w,
-      position: p,
-    };
-  });
+  async function loeschen() {
+    'use server';
+    await loescheErhoehung(id);
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/dashboard/mietzinserhoehung"
-          className="text-sm text-gray-500 hover:underline"
-        >
-          ← Zurück
-        </Link>
+      <Link
+        href="/dashboard/mietzinserhoehung"
+        className="text-sm text-gray-500 hover:underline"
+      >
+        ← Zurück
+      </Link>
 
-        <h1 className="mt-2 text-2xl font-bold">
+      <div>
+        <h1 className="text-2xl font-bold">
           {erhoehung.titel ?? 'Mietzinserhöhung'}
         </h1>
-
         <p className="text-sm text-gray-500">
           Status: {erhoehung.status ?? 'entwurf'}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <InfoCard label="Grund" value={erhoehung.grund ?? '-'} />
-        <InfoCard label="Investition total" value={formatCHF(erhoehung.investition_total)} />
-        <InfoCard label="Netto-Investition" value={formatCHF(erhoehung.netto_investition)} />
-        <InfoCard label="Jahressatz total" value={formatCHF(erhoehung.jahressatz_total)} />
-      </div>
+      <form action={speichern} className="space-y-4 rounded border p-6">
+        <h2 className="text-lg font-semibold">Mietzinserhöhung bearbeiten</h2>
 
-      <div className="rounded border">
-        <div className="border-b p-4">
-          <h2 className="font-semibold">
-            Detailauflistung pro Wohnung
-          </h2>
-          <p className="text-sm text-gray-500">
-            Übersicht aller Wohnungen, die dieser Mietzinserhöhung zugeordnet sind.
-          </p>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Titel</label>
+          <input
+            name="titel"
+            defaultValue={erhoehung.titel ?? 'Mietzinserhöhung'}
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
 
-        {rows.length === 0 ? (
-          <div className="p-6 text-sm text-gray-500">
-            Noch keine Wohnungen / Positionen vorhanden.
+        <div>
+          <label className="mb-1 block text-sm font-medium">Grund</label>
+          <select
+            name="grund"
+            defaultValue={erhoehung.grund ?? 'renovation'}
+            className="w-full rounded border px-3 py-2"
+          >
+            <option value="renovation">Renovation</option>
+            <option value="referenzzins">Referenzzinssatz</option>
+            <option value="teuerung">Teuerung</option>
+            <option value="kostensteigerung">Kostensteigerung</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">Status</label>
+          <select
+            name="status"
+            defaultValue={erhoehung.status ?? 'entwurf'}
+            className="w-full rounded border px-3 py-2"
+          >
+            <option value="entwurf">Entwurf</option>
+            <option value="berechnet">Berechnet</option>
+            <option value="versendet">Versendet</option>
+            <option value="angefochten">Angefochten</option>
+            <option value="aktiv">Aktiv</option>
+          </select>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Investition total
+            </label>
+            <input
+              name="investition_total"
+              type="number"
+              step="0.01"
+              defaultValue={erhoehung.investition_total ?? 0}
+              className="w-full rounded border px-3 py-2"
+            />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left">
-                <tr>
-                  <th className="p-3">Wohnung</th>
-                  <th className="p-3">Mieter</th>
-                  <th className="p-3">Aktuelle Miete</th>
-                  <th className="p-3">Erhöhung</th>
-                  <th className="p-3">Neue Miete</th>
-                  <th className="p-3">Beheizt</th>
-                </tr>
-              </thead>
 
-              <tbody>
-                {rows.map(({ id, wohnung, position }) => (
-                  <tr key={id} className="border-t">
-                    <td className="p-3">
-                      {wohnung.name ??
-                        wohnung.nummer ??
-                        wohnung.bezeichnung ??
-                        wohnung.id ??
-                        'Wohnung'}
-                    </td>
-
-                    <td className="p-3">
-                      {wohnung.mieter_name ??
-                        wohnung.mieter ??
-                        wohnung.mieter_id ??
-                        '-'}
-                    </td>
-
-                    <td className="p-3">
-                      {formatCHF(
-                        position.miete_alt ??
-                          wohnung.miete ??
-                          wohnung.netto_miete
-                      )}
-                    </td>
-
-                    <td className="p-3">
-                      {formatCHF(
-                        position.erhoehung_betrag ??
-                          position.monatliche_erhoehung
-                      )}
-                    </td>
-
-                    <td className="p-3">
-                      {formatCHF(
-                        position.miete_neu ??
-                          position.neue_miete
-                      )}
-                    </td>
-
-                    <td className="p-3">
-                      {position.beheizt ? 'Ja' : 'Nein'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Netto-Investition
+            </label>
+            <input
+              name="netto_investition"
+              type="number"
+              step="0.01"
+              defaultValue={erhoehung.netto_investition ?? 0}
+              className="w-full rounded border px-3 py-2"
+            />
           </div>
-        )}
-      </div>
 
-      <div className="rounded border bg-gray-50 p-4 text-sm text-gray-600">
-        Vorschlag nächste Ausbaustufe: automatische Berechnung pro Wohnung mit Anteil nach Fläche,
-        aktueller Nettomiete, wertvermehrender Investition, Heizkosten-Relevanz und neuer Monatsmiete.
-      </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Jahressatz total
+            </label>
+            <input
+              name="jahressatz_total"
+              type="number"
+              step="0.01"
+              defaultValue={erhoehung.jahressatz_total ?? 0}
+              className="w-full rounded border px-3 py-2"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="rounded bg-black px-4 py-2 text-white"
+        >
+          Änderungen speichern
+        </button>
+      </form>
+
+      <form action={loeschen} className="rounded border border-red-200 bg-red-50 p-6">
+        <h2 className="font-semibold text-red-700">Mietzinserhöhung löschen</h2>
+        <p className="mt-1 text-sm text-red-600">
+          Diese Aktion löscht die Mietzinserhöhung dauerhaft.
+        </p>
+
+        <button
+          type="submit"
+          className="mt-4 rounded bg-red-600 px-4 py-2 text-white"
+        >
+          Löschen
+        </button>
+      </form>
     </div>
   );
-}
-
-function InfoCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded border p-4">
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="mt-1 font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function formatCHF(value: unknown) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return '-';
-  }
-
-  return new Intl.NumberFormat('de-CH', {
-    style: 'currency',
-    currency: 'CHF',
-  }).format(number);
 }
