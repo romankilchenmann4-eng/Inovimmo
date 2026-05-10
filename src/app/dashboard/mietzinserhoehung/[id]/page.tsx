@@ -278,10 +278,22 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
       </div>
 
       <div className="rounded border bg-gray-50 p-6">
-        <h2 className="font-semibold">Export</h2>
+        <h2 className="font-semibold">
+          Export
+        </h2>
+
         <p className="mt-1 text-sm text-gray-600">
-          Als nächstes bauen wir hier den Export als CSV/Excel und danach PDF pro Wohnung.
+          Export der berechneten Mietzinserhöhung pro Wohnung.
         </p>
+
+        <div className="mt-4 flex gap-3">
+          <Link
+            href={`/dashboard/mietzinserhoehung/${id}/export/csv`}
+            className="inline-block rounded bg-black px-4 py-2 text-white"
+          >
+            CSV exportieren
+          </Link>
+        </div>
       </div>
 
       <form
