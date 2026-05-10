@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 // ============================================================
-// 1. ERSTELLEN
+// ERSTELLEN
 // ============================================================
 export async function erstelleErhoehung(formData: FormData) {
   const supabase = await createClient();
@@ -57,9 +57,12 @@ export async function erstelleErhoehung(formData: FormData) {
 }
 
 // ============================================================
-// 2. AKTUALISIEREN
+// AKTUALISIEREN
 // ============================================================
-export async function aktualisiereErhoehung(id: string, updates: any) {
+export async function aktualisiereErhoehung(
+  id: string,
+  updates: Record<string, any>
+): Promise<void> {
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -72,66 +75,69 @@ export async function aktualisiereErhoehung(id: string, updates: any) {
     throw new Error(error.message);
   }
 
-  return true;
+  return;
 }
 
 // ============================================================
-// 3. NEU BERECHNEN (placeholder für Calc Integration)
+// NEU BERECHNEN (Placeholder / Calc Hook)
 // ============================================================
-export async function neuBerechnen(id: string) {
+export async function neuBerechnen(id: string): Promise<void> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('mietzins_erhoehungen')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error('Berechnung nicht gefunden');
   }
 
-  // Platzhalter (deine calc.ts kann hier später rein)
-  const neueWerte = {
-    netto_investition: data.investition_total || 0,
-    jahressatz_total: 0,
-    status: 'berechnet',
-  };
-
   const { error: updateError } = await supabase
     .from('mietzins_erhoehungen')
-    .update(neueWerte)
+    .update({
+      netto_investition: data.investition_total || 0,
+      jahressatz_total: 0,
+      status: 'berechnet',
+    })
     .eq('id', id);
 
   if (updateError) {
     throw new Error(updateError.message);
   }
 
-  return true;
+  return;
 }
 
 // ============================================================
-// 4. SETZE BEHEIZT (Position Update Placeholder)
+// POSITION: BEHEIZT SETZEN (FIXED TYPE ISSUE)
 // ============================================================
-export async function setzeBeheizt(positionId: string, beheizt: boolean) {
+export async function setzeBeheizt(
+  positionId: string,
+  erhoehungId: string,
+  beheizt: boolean
+): Promise<void> {
   const supabase = await createClient();
 
   const { error } = await supabase
     .from('mietzins_erhoehung_positionen')
     .update({ beheizt })
-    .eq('id', positionId);
+    .eq('id', positionId)
+    .eq('mietzins_erhoehung_id', erhoehungId);
 
   if (error) {
+    console.error(error);
     throw new Error(error.message);
   }
 
-  return true;
+  return;
 }
 
 // ============================================================
-// 5. LÖSCHEN
+// LÖSCHEN
 // ============================================================
-export async function loescheErhoehung(id: string) {
+export async function loescheErhoehung(id: string): Promise<void> {
   const supabase = await createClient();
 
   const { error } = await supabase
