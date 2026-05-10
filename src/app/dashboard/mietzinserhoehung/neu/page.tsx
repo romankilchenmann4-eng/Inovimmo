@@ -74,15 +74,7 @@ export default async function NeueMietzinsErhoehungPage() {
             className="w-full rounded border px-3 py-2"
           >
             <option value="renovation">
-              Renovation
-            </option>
-
-            <option value="referenzzins">
-              Referenzzinssatz
-            </option>
-
-            <option value="teuerung">
-              Teuerung
+              Renovation / wertvermehrende Investition
             </option>
 
             <option value="kostensteigerung">
