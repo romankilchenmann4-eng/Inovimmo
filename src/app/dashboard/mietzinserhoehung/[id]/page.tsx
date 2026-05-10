@@ -229,6 +229,7 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
                   <th className="p-3">Erhöhung / Mt.</th>
                   <th className="p-3">Neue Nettomiete</th>
                   <th className="p-3">Investitionsanteil</th>
+                  <th className="p-3">Formular</th>
                 </tr>
               </thead>
 
@@ -267,6 +268,15 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
 
                       <td className="p-3">
                         {formatCHF(p.investitionsanteil)}
+                      </td>
+
+                      <td className="p-3">
+                        <Link
+                          href={`/dashboard/mietzinserhoehung/${id}/export/formular/${p.id}`}
+                          className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
+                        >
+                          Amtliches Formular
+                        </Link>
                       </td>
                     </tr>
                   );
