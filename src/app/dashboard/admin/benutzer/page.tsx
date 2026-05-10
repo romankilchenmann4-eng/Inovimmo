@@ -17,7 +17,7 @@ export default async function AdminBenutzerPage() {
         </h1>
 
         <p className="text-sm text-gray-500">
-          Benutzer erstellen und Liegenschaften zuweisen.
+          Benutzer erstellen und mehrere Liegenschaften zuweisen.
         </p>
       </div>
 
@@ -64,47 +64,34 @@ export default async function AdminBenutzerPage() {
               className="w-full rounded border px-3 py-2"
               defaultValue="eigentümer"
             >
-              <option value="admin">
-                Admin
-              </option>
-
-              <option value="verwalter">
-                Verwalter
-              </option>
-
-              <option value="eigentümer">
-                Eigentümer
-              </option>
-
-              <option value="dienstleister">
-                Dienstleister
-              </option>
-
-              <option value="mieter">
-                Mieter
-              </option>
+              <option value="admin">Admin</option>
+              <option value="verwalter">Verwalter</option>
+              <option value="eigentümer">Eigentümer</option>
+              <option value="dienstleister">Dienstleister</option>
+              <option value="mieter">Mieter</option>
             </select>
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium">
-              Liegenschaft
+              Liegenschaften
             </label>
 
             <select
-              name="liegenschaft_id"
-              className="w-full rounded border px-3 py-2"
+              name="liegenschaft_ids"
+              multiple
+              className="h-40 w-full rounded border px-3 py-2"
             >
-              <option value="">
-                Keine Zuweisung
-              </option>
-
               {(liegenschaften ?? []).map((l: any) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
                 </option>
               ))}
             </select>
+
+            <p className="mt-1 text-xs text-gray-500">
+              Mehrfachauswahl: Ctrl / Cmd gedrückt halten und mehrere Liegenschaften auswählen.
+            </p>
           </div>
         </div>
 
