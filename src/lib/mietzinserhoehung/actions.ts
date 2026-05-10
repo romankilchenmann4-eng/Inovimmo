@@ -3,11 +3,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { MietzinsErhoehung } from './types';
+import type {
+  MietzinsErhoehung,
+} from './types';
 import { berechneErhoehung, generiereBegruendungstext } from './calc';
 
 // ============================================================
-// Erhöhung erstellen
+// Berechnung erstellen (mit Liegenschafts-Auswahl)
 // ============================================================
 export async function erstelleErhoehung(formData: FormData) {
   const supabase = await createClient();
@@ -16,34 +18,32 @@ export async function erstelleErhoehung(formData: FormData) {
 
   const liegenschaft_id = formData.get('liegenschaft_id') as string;
   const titel = (formData.get('titel') as string) || 'Neue Berechnung';
-  const grund = (formData.get('grund') as string) || 'heizung_ersatz';
+  const grund = (formData.get('grund') as string) || 'heizungsersatz';
 
   if (!liegenschaft_id) {
     throw new Error('Liegenschaft muss ausgewählt werden');
   }
 
   // 1. Erhöhung anlegen
-  const { data: erhoehung, error } = await supabase
+  const { data: erhoehung, error: errInsert } = await supabase
     .from('mietzins_erhoehungen')
     .insert({
       liegenschaft_id,
       verwalter_id: user.id,
       titel,
       grund,
-      status: 'entwurf',
     })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (errInsert) throw new Error(errInsert.message);
 
-  // 2. Wohnungen holen
+  // 2. Alle Wohnungen der Liegenschaft als Positionen anlegen
   const { data: wohnungen } = await supabase
     .from('wohnungen')
     .select('id, beheizt')
     .eq('liegenschaft_id', liegenschaft_id);
 
-  // 3. Positionen erstellen
   if (wohnungen && wohnungen.length > 0) {
     const positionen = wohnungen.map(w => ({
       mietzins_erhoehung_id: erhoehung.id,
@@ -51,12 +51,12 @@ export async function erstelleErhoehung(formData: FormData) {
       beheizt: w.beheizt,
     }));
 
-    const { error: posError } = await supabase
+    const { error: errPos } = await supabase
       .from('mietzins_erhoehung_positionen')
       .insert(positionen);
 
-    if (posError) {
-      console.error('Fehler Positionen:', posError);
+    if (errPos) {
+      console.error('Fehler beim Anlegen der Positionen:', errPos);
     }
   }
 
@@ -65,7 +65,7 @@ export async function erstelleErhoehung(formData: FormData) {
 }
 
 // ============================================================
-// Erhöhung aktualisieren
+// Berechnung aktualisieren
 // ============================================================
 export async function aktualisiereErhoehung(
   id: string,
@@ -82,12 +82,11 @@ export async function aktualisiereErhoehung(
     .eq('verwalter_id', user.id);
 
   if (error) throw new Error(error.message);
-
   revalidatePath(`/dashboard/mietzinserhoehung/${id}`);
 }
 
 // ============================================================
-// Neu berechnen
+// Berechnen + speichern (alle Positionen aktualisieren)
 // ============================================================
 export async function neuBerechnen(id: string) {
   const supabase = await createClient();
@@ -95,18 +94,16 @@ export async function neuBerechnen(id: string) {
   if (!user) throw new Error('Nicht eingeloggt');
 
   // Erhöhung laden
-  const { data: erhoehung, error } = await supabase
+  const { data: erhoehung, error: errE } = await supabase
     .from('mietzins_erhoehungen')
     .select('*')
     .eq('id', id)
     .eq('verwalter_id', user.id)
     .single();
 
-  if (error || !erhoehung) {
-    throw new Error('Berechnung nicht gefunden');
-  }
+  if (errE || !erhoehung) throw new Error('Berechnung nicht gefunden');
 
-  // Positionen + Nettomieten laden
+  // Positionen mit aktueller Wohnungsmiete laden
   const { data: positionen } = await supabase
     .from('mietzins_erhoehung_positionen')
     .select(`
@@ -121,27 +118,27 @@ export async function neuBerechnen(id: string) {
     throw new Error('Keine Positionen vorhanden');
   }
 
-  // 👉 WICHTIG: Mapping auf calc.ts Struktur
+  // Berechnung
   const ergebnis = berechneErhoehung({
-    investition_total: erhoehung.investition_total ?? 0,
-    foerderbeitraege: erhoehung.foerderbeitraege ?? 0,
-    wertvermehrend_prozent: erhoehung.wertvermehrend_prozent ?? 0,
-    referenzzinssatz: erhoehung.referenzzinssatz ?? 0,
-    zuschlag: erhoehung.zuschlag ?? 0,
-    amortisation_prozent: erhoehung.amortisation_prozent ?? 0,
-    unterhalt_prozent: erhoehung.unterhalt_prozent ?? 0,
+    investition_total: erhoehung.investition_total,
+    foerderbeitraege: erhoehung.foerderbeitraege,
+    wertvermehrend_prozent: erhoehung.wertvermehrend_prozent,
+    referenzzinssatz: erhoehung.referenzzinssatz,
+    zuschlag: erhoehung.zuschlag,
+    amortisation_prozent: erhoehung.amortisation_prozent,
+    unterhalt_prozent: erhoehung.unterhalt_prozent,
     positionen: positionen.map(p => ({
-  wohnung_id: p.wohnung_id,
- nettomiete: Number(p.wohnung?.[0]?.nettomiete ?? 0),
-beheizt: Boolean(p.beheizt ?? false),
+      wohnung_id: p.wohnung_id,
+      // @ts-expect-error - Supabase JOIN returns nested object
+      nettomiete: Number(p.wohnung?.nettomiete ?? 0),
+      beheizt: p.beheizt,
     })),
   });
 
-  // Positionen speichern
+  // Positionen aktualisieren
   for (let i = 0; i < positionen.length; i++) {
     const pos = positionen[i];
     const erg = ergebnis.positionen[i];
-
     await supabase
       .from('mietzins_erhoehung_positionen')
       .update({
@@ -152,7 +149,7 @@ beheizt: Boolean(p.beheizt ?? false),
       .eq('id', pos.id);
   }
 
-  // Begründung speichern
+  // Status + Begründungstext
   await supabase
     .from('mietzins_erhoehungen')
     .update({
@@ -162,12 +159,11 @@ beheizt: Boolean(p.beheizt ?? false),
     .eq('id', id);
 
   revalidatePath(`/dashboard/mietzinserhoehung/${id}`);
-
   return ergebnis;
 }
 
 // ============================================================
-// Beheizt setzen
+// Beheizt-Flag pro Position umschalten
 // ============================================================
 export async function setzeBeheizt(
   position_id: string,
@@ -175,19 +171,17 @@ export async function setzeBeheizt(
   beheizt: boolean,
 ) {
   const supabase = await createClient();
-
   const { error } = await supabase
     .from('mietzins_erhoehung_positionen')
     .update({ beheizt })
     .eq('id', position_id);
 
   if (error) throw new Error(error.message);
-
   revalidatePath(`/dashboard/mietzinserhoehung/${erhoehung_id}`);
 }
 
 // ============================================================
-// Löschen
+// Erhöhung löschen
 // ============================================================
 export async function loescheErhoehung(id: string) {
   const supabase = await createClient();
@@ -201,7 +195,6 @@ export async function loescheErhoehung(id: string) {
     .eq('verwalter_id', user.id);
 
   if (error) throw new Error(error.message);
-
   revalidatePath('/dashboard/mietzinserhoehung');
   redirect('/dashboard/mietzinserhoehung');
 }
