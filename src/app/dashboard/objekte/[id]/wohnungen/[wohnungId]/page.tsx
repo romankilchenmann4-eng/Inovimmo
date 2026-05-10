@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 type Wohnung = {
@@ -17,7 +18,6 @@ type Wohnung = {
   status?: string
   wohnungstyp?: string
   beheizt?: boolean
-  position?: string
   kuendigungstermine?: string
   verteilschluessel_prozent?: number
 }
@@ -142,13 +142,55 @@ export default function WohnungDetailPage() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl border p-6">
+        <h2 className="font-semibold mb-4">Aktionen</h2>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/einzug`}
+            title="Einzug erfassen"
+            description="Neuen Mieter erfassen und Mietverhältnis starten."
+          />
+
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/auszug`}
+            title="Auszug erfassen"
+            description="Auszug, Rückgabe und Historie dokumentieren."
+          />
+
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/mietvertrag`}
+            title="Mietvertrag hochladen"
+            description="Mietvertrag oder Nachträge zur Wohnung ablegen."
+          />
+
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/uebergabe`}
+            title="Übergabeprotokoll"
+            description="Einzugs- oder Auszugsprotokoll erstellen."
+          />
+
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/inserat`}
+            title="Inserat erstellen"
+            description="Leerstand vermarkten und Inserat vorbereiten."
+          />
+
+          <ActionLink
+            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/historie`}
+            title="Historie anzeigen"
+            description="Frühere Mieter und Ereignisse ansehen."
+          />
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-3 gap-4">
         <InfoCard label="Zimmer" value={wohnung.zimmer ? `${wohnung.zimmer}` : '-'} />
         <InfoCard label="Fläche" value={wohnung.flaeche_m2 ? `${wohnung.flaeche_m2} m²` : '-'} />
         <InfoCard label="Verteilschlüssel" value={wohnung.verteilschluessel_prozent ? `${wohnung.verteilschluessel_prozent}%` : '-'} />
         <InfoCard label="Etage" value={wohnung.etage !== undefined ? `${wohnung.etage}` : '-'} />
         <InfoCard label="Beheizt" value={wohnung.beheizt ? 'Ja' : 'Nein'} />
-        <InfoCard label="Kündigung" value={wohnung.kuendigungstermine || '-'} />
+        <InfoCard label="Kündigung" value={formatKuendigungstermine(wohnung.kuendigungstermine)} />
       </div>
 
       <div className="bg-white rounded-xl border p-6">
@@ -211,11 +253,31 @@ export default function WohnungDetailPage() {
           <div>Verteilschlüssel: {wohnung.verteilschluessel_prozent ?? '-'}%</div>
           <div>Fläche: {wohnung.flaeche_m2 ?? '-'} m²</div>
           <div>Beheizt: {wohnung.beheizt ? 'Ja' : 'Nein'}</div>
-          <div>Kündigungstermine: {wohnung.kuendigungstermine || '-'}</div>
+          <div>Kündigungstermine: {formatKuendigungstermine(wohnung.kuendigungstermine)}</div>
           <div>Wohnungstyp: {wohnung.wohnungstyp || '-'}</div>
         </div>
       </div>
     </div>
+  )
+}
+
+function ActionLink({
+  href,
+  title,
+  description,
+}: {
+  href: string
+  title: string
+  description: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-lg border p-4 hover:bg-gray-50 transition block"
+    >
+      <div className="font-medium">{title}</div>
+      <div className="mt-1 text-xs text-gray-500">{description}</div>
+    </Link>
   )
 }
 
@@ -232,4 +294,33 @@ function InfoCard({
       <p className="text-xl font-bold">{value}</p>
     </div>
   )
+}
+
+function formatKuendigungstermine(value?: string | null) {
+  if (!value) return '-'
+
+  const monate: Record<string, string> = {
+    '01': 'Januar',
+    '02': 'Februar',
+    '03': 'März',
+    '04': 'April',
+    '05': 'Mai',
+    '06': 'Juni',
+    '07': 'Juli',
+    '08': 'August',
+    '09': 'September',
+    '10': 'Oktober',
+    '11': 'November',
+    '12': 'Dezember',
+  }
+
+  const cleaned = value.replace(/\D/g, '')
+  const parts = cleaned.match(/.{1,2}/g) ?? []
+
+  const formatted = parts
+    .map((m) => monate[m])
+    .filter(Boolean)
+    .join(', ')
+
+  return formatted || value
 }
