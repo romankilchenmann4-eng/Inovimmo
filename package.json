@@ -2,7 +2,9 @@
   "name": "inovimmo",
   "version": "0.2.0",
   "private": true,
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -29,6 +31,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "next": "^15.2.8",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",
