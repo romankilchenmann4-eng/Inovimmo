@@ -23,7 +23,7 @@ export async function adminCreateUser(formData: FormData) {
   // =========================================================
   // Benutzer erstellen
   // =========================================================
-
+r
   const { data, error } =
     await supabaseAdmin.auth.admin.createUser({
       email,
@@ -72,6 +72,6 @@ export async function adminCreateUser(formData: FormData) {
   }
 
   return {
-    success: true,
+    success:
   };
 }
