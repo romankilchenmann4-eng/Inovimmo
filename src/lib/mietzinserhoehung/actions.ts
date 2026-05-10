@@ -30,27 +30,22 @@ export async function erstelleErhoehung(formData: FormData) {
     .insert({
       liegenschaft_id,
       verwalter_id: user.id,
-      titel:
-        typeof titel === 'string' && titel
-          ? titel
-          : 'Mietzinserhöhung',
-      grund:
-        typeof grund === 'string' && grund
-          ? grund
-          : 'renovation',
+      titel: typeof titel === 'string' && titel ? titel : 'Mietzinserhöhung',
+      grund: typeof grund === 'string' && grund ? grund : 'renovation',
       status: 'entwurf',
+      investition_total: 0,
+      foerderbeitraege: 0,
+      sonstige_kosten: 0,
+      sonstige_abzuege: 0,
+      wertvermehrend_prozent: 70,
+      kapitalisierungssatz: 8,
+      netto_investition: 0,
+      jahressatz_total: 0,
     })
     .select('id')
     .single();
 
   if (error) {
-    console.error('ERSTELLE MIETZINSERHOEHUNG ERROR:', {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
-
     throw new Error(error.message);
   }
 
@@ -62,13 +57,6 @@ export async function erstelleErhoehung(formData: FormData) {
     .eq('liegenschaft_id', liegenschaft_id);
 
   if (wohnungenError) {
-    console.error('LADE WOHNUNGEN ERROR:', {
-      message: wohnungenError.message,
-      details: wohnungenError.details,
-      hint: wohnungenError.hint,
-      code: wohnungenError.code,
-    });
-
     throw new Error(wohnungenError.message);
   }
 
@@ -82,7 +70,12 @@ export async function erstelleErhoehung(formData: FormData) {
       flaeche_m2: Number(w.flaeche_m2 || 0),
       beheizt: Boolean(w.beheizt),
       erhoehung_betrag: 0,
+      erhoehung_monatlich: 0,
       miete_neu: Number(w.nettomiete || 0),
+      nebenkosten_neu: Number(w.nebenkosten_akonto || 0),
+      investitionsanteil: 0,
+      begruendung: '',
+      berechnet_am: null,
     }));
 
     const { error: positionenError } = await supabase
@@ -90,13 +83,6 @@ export async function erstelleErhoehung(formData: FormData) {
       .insert(positionen);
 
     if (positionenError) {
-      console.error('ERSTELLE POSITIONEN ERROR:', {
-        message: positionenError.message,
-        details: positionenError.details,
-        hint: positionenError.hint,
-        code: positionenError.code,
-      });
-
       throw new Error(positionenError.message);
     }
   }
@@ -119,11 +105,94 @@ export async function aktualisiereErhoehung(
     .eq('id', id);
 
   if (error) {
-    console.error(error);
     throw new Error(error.message);
   }
+}
 
-  return;
+// ============================================================
+// SPEICHERN UND NEU BERECHNEN
+// ============================================================
+export async function speichereUndBerechneErhoehung(
+  id: string,
+  formData: FormData
+): Promise<void> {
+  const investitionTotal = Number(formData.get('investition_total') || 0);
+  const foerderbeitraege = Number(formData.get('foerderbeitraege') || 0);
+  const sonstigeKosten = Number(formData.get('sonstige_kosten') || 0);
+  const sonstigeAbzuege = Number(formData.get('sonstige_abzuege') || 0);
+  const wertvermehrendProzent = Number(formData.get('wertvermehrend_prozent') || 70);
+  const kapitalisierungssatz = Number(formData.get('kapitalisierungssatz') || 8);
+  const titel = formData.get('titel');
+  const grund = formData.get('grund');
+  const status = formData.get('status');
+
+  const anrechenbareInvestition =
+    investitionTotal - foerderbeitraege - sonstigeAbzuege + sonstigeKosten;
+
+  const nettoInvestition =
+    anrechenbareInvestition * (wertvermehrendProzent / 100);
+
+  const jahressatzTotal =
+    nettoInvestition * (kapitalisierungssatz / 100);
+
+  const monatTotal = jahressatzTotal / 12;
+
+  const supabase = await createClient();
+
+  const { error: updateError } = await supabase
+    .from('mietzins_erhoehungen')
+    .update({
+      titel: typeof titel === 'string' && titel ? titel : 'Mietzinserhöhung',
+      grund: typeof grund === 'string' && grund ? grund : 'renovation',
+      status: typeof status === 'string' && status ? status : 'berechnet',
+      investition_total: investitionTotal,
+      foerderbeitraege,
+      sonstige_kosten: sonstigeKosten,
+      sonstige_abzuege: sonstigeAbzuege,
+      wertvermehrend_prozent: wertvermehrendProzent,
+      kapitalisierungssatz,
+      netto_investition: nettoInvestition,
+      jahressatz_total: jahressatzTotal,
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  const { data: positionen, error: posError } = await supabase
+    .from('mietzins_erhoehung_positionen')
+    .select('*')
+    .eq('mietzins_erhoehung_id', id);
+
+  if (posError) {
+    throw new Error(posError.message);
+  }
+
+  for (const p of positionen ?? []) {
+    const anteil = Number(p.verteilschluessel_prozent || 0) / 100;
+    const erhoehungMonatlich = monatTotal * anteil;
+    const alteMiete = Number(p.miete_alt || 0);
+    const neueMiete = alteMiete + erhoehungMonatlich;
+    const investitionsanteil = nettoInvestition * anteil;
+
+    const { error } = await supabase
+      .from('mietzins_erhoehung_positionen')
+      .update({
+        investitionsanteil,
+        erhoehung_betrag: erhoehungMonatlich,
+        erhoehung_monatlich: erhoehungMonatlich,
+        miete_neu: neueMiete,
+        begruendung:
+          'Berechnung auf Basis der wertvermehrenden Investition und des Verteilschlüssels.',
+        berechnet_am: new Date().toISOString(),
+      })
+      .eq('id', p.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
 }
 
 // ============================================================
@@ -142,18 +211,19 @@ export async function neuBerechnen(id: string): Promise<void> {
     throw new Error('Berechnung nicht gefunden');
   }
 
-  const { error: updateError } = await supabase
-    .from('mietzins_erhoehungen')
-    .update({
-      status: 'berechnet',
-    })
-    .eq('id', id);
+  const formData = new FormData();
 
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
+  formData.set('titel', data.titel ?? 'Mietzinserhöhung');
+  formData.set('grund', data.grund ?? 'renovation');
+  formData.set('status', 'berechnet');
+  formData.set('investition_total', String(data.investition_total ?? 0));
+  formData.set('foerderbeitraege', String(data.foerderbeitraege ?? 0));
+  formData.set('sonstige_kosten', String(data.sonstige_kosten ?? 0));
+  formData.set('sonstige_abzuege', String(data.sonstige_abzuege ?? 0));
+  formData.set('wertvermehrend_prozent', String(data.wertvermehrend_prozent ?? 70));
+  formData.set('kapitalisierungssatz', String(data.kapitalisierungssatz ?? 8));
 
-  return;
+  await speichereUndBerechneErhoehung(id, formData);
 }
 
 // ============================================================
@@ -173,11 +243,8 @@ export async function setzeBeheizt(
     .eq('mietzins_erhoehung_id', erhoehungId);
 
   if (error) {
-    console.error(error);
     throw new Error(error.message);
   }
-
-  return;
 }
 
 // ============================================================
@@ -185,6 +252,11 @@ export async function setzeBeheizt(
 // ============================================================
 export async function loescheErhoehung(id: string): Promise<void> {
   const supabase = await createClient();
+
+  await supabase
+    .from('mietzins_erhoehung_positionen')
+    .delete()
+    .eq('mietzins_erhoehung_id', id);
 
   const { error } = await supabase
     .from('mietzins_erhoehungen')
