@@ -13,7 +13,9 @@ export async function erstelleErhoehung(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth/login');
+  if (!user) {
+    redirect('/auth/login');
+  }
 
   const liegenschaft_id = formData.get('liegenschaft_id');
   const grund = formData.get('grund');
@@ -28,29 +30,28 @@ export async function erstelleErhoehung(formData: FormData) {
     .insert({
       liegenschaft_id,
       verwalter_id: user.id,
-      titel: typeof titel === 'string' ? titel : 'Mietzinserhöhung',
-      grund: typeof grund === 'string' ? grund : 'renovation',
-      investition_total: 0,
-      foerderbeitraege: 0,
-      wertvermehrend_prozent: 0,
-      referenzzinssatz: 0,
-      zuschlag: 0,
-      amortisation_prozent: 0,
-      unterhalt_prozent: 0,
-      netto_investition: 0,
-      jahressatz_total: 0,
+      titel:
+        typeof titel === 'string' && titel
+          ? titel
+          : 'Mietzinserhöhung',
+      grund:
+        typeof grund === 'string' && grund
+          ? grund
+          : 'renovation',
       status: 'entwurf',
     })
-    .select()
-    .maybeSingle();
+    .select('id')
+    .single();
 
   if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
+    console.error('ERSTELLE MIETZINSERHOEHUNG ERROR:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
 
-  if (!data) {
-    throw new Error('Kein Datensatz erstellt');
+    throw new Error(error.message);
   }
 
   redirect(`/dashboard/mietzinserhoehung/${data.id}`);
@@ -79,9 +80,11 @@ export async function aktualisiereErhoehung(
 }
 
 // ============================================================
-// NEU BERECHNEN (Placeholder / Calc Hook)
+// NEU BERECHNEN
 // ============================================================
-export async function neuBerechnen(id: string): Promise<void> {
+export async function neuBerechnen(
+  id: string
+): Promise<void> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -97,8 +100,6 @@ export async function neuBerechnen(id: string): Promise<void> {
   const { error: updateError } = await supabase
     .from('mietzins_erhoehungen')
     .update({
-      netto_investition: data.investition_total || 0,
-      jahressatz_total: 0,
       status: 'berechnet',
     })
     .eq('id', id);
@@ -111,7 +112,7 @@ export async function neuBerechnen(id: string): Promise<void> {
 }
 
 // ============================================================
-// POSITION: BEHEIZT SETZEN (FIXED TYPE ISSUE)
+// POSITION: BEHEIZT SETZEN
 // ============================================================
 export async function setzeBeheizt(
   positionId: string,
@@ -137,7 +138,9 @@ export async function setzeBeheizt(
 // ============================================================
 // LÖSCHEN
 // ============================================================
-export async function loescheErhoehung(id: string): Promise<void> {
+export async function loescheErhoehung(
+  id: string
+): Promise<void> {
   const supabase = await createClient();
 
   const { error } = await supabase
