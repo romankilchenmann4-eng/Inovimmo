@@ -7,38 +7,26 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function adminCreateUser(formData: FormData) {
+export async function adminCreateUser(formData: FormData): Promise<void> {
   const email = String(formData.get('email') || '').trim();
   const full_name = String(formData.get('full_name') || '').trim();
   const role = String(formData.get('role') || 'mieter').trim();
-
-  const liegenschaft_id = String(
-    formData.get('liegenschaft_id') || ''
-  ).trim();
+  const liegenschaft_id = String(formData.get('liegenschaft_id') || '').trim();
 
   if (!email) {
     throw new Error('E-Mail fehlt');
   }
 
-  // =========================================================
-  // Benutzer erstellen
-  // =========================================================
-r
-  const { data, error } =
-    await supabaseAdmin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-    });
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 
   const userId = data.user.id;
-
-  // =========================================================
-  // Profil anlegen
-  // =========================================================
 
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
@@ -52,10 +40,6 @@ r
   if (profileError) {
     throw new Error(profileError.message);
   }
-
-  // =========================================================
-  // Liegenschaft zuweisen
-  // =========================================================
 
   if (liegenschaft_id) {
     const { error: berechtigungError } = await supabaseAdmin
@@ -71,7 +55,5 @@ r
     }
   }
 
-  return {
-    success:
-  };
+  return;
 }
