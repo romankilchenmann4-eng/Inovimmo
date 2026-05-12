@@ -58,13 +58,11 @@ Wichtig: Du kannst keine Aktionen ausführen, nur informieren und beraten.
 Für Notfälle: Feuerwehr 118, Polizei 117, Sanitäter 144.
 `;
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 500,
-          system: context,
+          context,
           messages: [
             ...messages.filter(m => m.role !== "assistant" || messages.indexOf(m) > 0).map(m => ({
               role: m.role, content: m.content
@@ -75,7 +73,7 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanitäter 144.
       });
 
       const data = await response.json();
-      const reply = data.content?.[0]?.text ?? "Entschuldigung, ich konnte keine Antwort generieren.";
+      const reply = data.reply ?? "Entschuldigung, ich konnte keine Antwort generieren.";
 
       setMessages(m => [...m, { role: "assistant", content: reply, ts: new Date() }]);
     } catch {
