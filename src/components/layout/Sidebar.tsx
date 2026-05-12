@@ -26,6 +26,9 @@ const NAV: NavItem[] = [
   { href: "/dashboard/escrow", label: "Escrow & Zahlung", icon: "🔒", roles: ["admin", "verwalter", "dienstleister"] },
 
   { href: "/dashboard/nebkosten", label: "Nebenkosten", icon: "📑", roles: ["admin", "verwalter"] },
+  { href: "/dashboard/buchhaltung", label: "Buchhaltung", icon: "💼", roles: ["admin", "verwalter"] },
+  { href: "/dashboard/mahnungen", label: "Mahnwesen", icon: "📬", roles: ["admin", "verwalter"] },
+  { href: "/dashboard/qr-rechnung", label: "QR-Rechnung", icon: "🏦", roles: ["admin", "verwalter"] },
 
   { href: "/dashboard/mietzinserhoehung", label: "Mietzinserhöhungen", icon: "🧾", roles: ["admin", "verwalter"], section: "Mietrecht" },
   { href: "/dashboard/mieter/anpassungen", label: "Mietzinsanpassungen", icon: "🧾", roles: ["mieter"], section: "Mietrecht" },
@@ -34,7 +37,6 @@ const NAV: NavItem[] = [
   { href: "/dashboard/uebergabe", label: "Wohnungsübergabe", icon: "🔑", roles: ["admin", "verwalter"] },
   { href: "/dashboard/screening", label: "Mieter-Screening", icon: "🔍", roles: ["admin", "verwalter"] },
   { href: "/dashboard/kalender", label: "Kalender", icon: "📅", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/buchhaltung", label: "Buchhaltung", icon: "💼", roles: ["admin", "verwalter"] },
 
   { href: "/dashboard/ki-analyse", label: "KI-Mietpreisanalyse", icon: "📈", roles: ["admin", "verwalter"], section: "KI" },
   { href: "/dashboard/ki-assistent", label: "KI-Assistent", icon: "🤖", roles: ["admin", "verwalter", "eigentümer", "mieter"] },
