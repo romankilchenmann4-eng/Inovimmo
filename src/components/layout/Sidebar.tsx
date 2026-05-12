@@ -30,7 +30,8 @@ const NAV: NavItem[] = [
   { href: "/dashboard/mahnungen", label: "Mahnwesen", icon: "📬", roles: ["admin", "verwalter"] },
   { href: "/dashboard/qr-rechnung", label: "QR-Rechnung", icon: "🏦", roles: ["admin", "verwalter"] },
 
-  { href: "/dashboard/mietzinserhoehung", label: "Mietzinserhöhungen", icon: "🧾", roles: ["admin", "verwalter"], section: "Mietrecht" },
+  { href: "/dashboard/mietvertrag", label: "Mietvertrag", icon: "📝", roles: ["admin", "verwalter"], section: "Mietrecht" },
+  { href: "/dashboard/mietzinserhoehung", label: "Mietzinserhöhungen", icon: "🧾", roles: ["admin", "verwalter"] },
   { href: "/dashboard/mieter/anpassungen", label: "Mietzinsanpassungen", icon: "🧾", roles: ["mieter"], section: "Mietrecht" },
 
   { href: "/dashboard/dokumente", label: "Dokumente", icon: "📁", roles: ["admin", "verwalter", "eigentümer"], section: "Tools" },
