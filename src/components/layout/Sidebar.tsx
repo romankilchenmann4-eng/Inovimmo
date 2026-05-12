@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/mieter/anpassungen", label: "Mietzinsanpassungen", icon: "🧾", roles: ["mieter"], section: "Mietrecht" },
 
   { href: "/dashboard/dokumente", label: "Dokumente", icon: "📁", roles: ["admin", "verwalter", "eigentümer"], section: "Tools" },
+  { href: "/dashboard/dokumente/jahresbericht", label: "Jahresbericht", icon: "📊", roles: ["admin", "verwalter", "eigentümer"] },
   { href: "/dashboard/uebergabe", label: "Wohnungsübergabe", icon: "🔑", roles: ["admin", "verwalter"] },
   { href: "/dashboard/screening", label: "Mieter-Screening", icon: "🔍", roles: ["admin", "verwalter"] },
   { href: "/dashboard/kalender", label: "Kalender", icon: "📅", roles: ["admin", "verwalter"] },
