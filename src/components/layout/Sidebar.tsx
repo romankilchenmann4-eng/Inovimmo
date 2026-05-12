@@ -43,7 +43,8 @@ const NAV: NavItem[] = [
   { href: "/dashboard/ki-analyse", label: "KI-Mietpreisanalyse", icon: "📈", roles: ["admin", "verwalter"], section: "KI" },
   { href: "/dashboard/ki-assistent", label: "KI-Assistent", icon: "🤖", roles: ["admin", "verwalter", "eigentümer", "mieter"] },
 
-  { href: "/dashboard/marktplatz", label: "Marktplatz", icon: "🛒", roles: ["admin", "verwalter"], section: "Services" },
+  { href: "/dashboard/stwe", label: "STWE", icon: "🏛", roles: ["admin", "verwalter"], section: "Erweitert" },
+  { href: "/dashboard/marktplatz", label: "Marktplatz", icon: "🛒", roles: ["admin", "verwalter"] },
 
   { href: "/dashboard/mieter", label: "Meine Wohnung", icon: "🏠", roles: ["mieter"], section: "Mein Bereich" },
   { href: "/dashboard/dienstleister", label: "Mein Betrieb", icon: "🔧", roles: ["dienstleister"], section: "Mein Betrieb" },
@@ -51,6 +52,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/admin/benutzer", label: "Benutzerverwaltung", icon: "👥", roles: ["admin"], section: "Admin" },
 
   { href: "/dashboard/einstellungen", label: "Einstellungen", icon: "⚙️", roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"], section: "Konto" },
+  { href: "/dashboard/einstellungen/abo", label: "Abo & Pläne", icon: "💳", roles: ["admin", "verwalter"] },
 ];
 
 export default function Sidebar({ profile }: { profile: Profile | null }) {
