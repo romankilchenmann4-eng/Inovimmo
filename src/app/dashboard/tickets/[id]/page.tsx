@@ -48,6 +48,19 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             </div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Beschreibung</p>
             <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-lg p-3">{t.beschreibung}</p>
+            {Array.isArray(t.fotos) && t.fotos.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Fotos ({t.fotos.length})</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(t.fotos as string[]).map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="bg-white rounded-xl border border-border shadow-sm">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
