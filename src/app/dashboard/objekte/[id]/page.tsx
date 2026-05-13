@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 type Liegenschaft = {
   id: string
@@ -92,6 +93,19 @@ export default function ObjektDetail() {
   const [wohnungen, setWohnungen] = useState<Wohnung[]>([])
   const [mietverhaeltnisse, setMietverhaeltnisse] = useState<Mietverhaeltnis[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddWohnung, setShowAddWohnung] = useState(false)
+  const [savingWohnung, setSavingWohnung] = useState(false)
+  const [newWohnung, setNewWohnung] = useState({
+    whg_nr: '',
+    bezeichnung: '',
+    etage: '0',
+    zimmer: '3.5',
+    flaeche_m2: '',
+    nettomiete: '',
+    nebenkosten_akonto: '',
+    wohnungstyp: 'wohnung',
+    mieterHinterlegen: true,
+  })
 
   useEffect(() => {
     const load = async () => {
@@ -169,6 +183,63 @@ export default function ObjektDetail() {
       .filter((mv) => mv.wohnung_id === wohnungId)
       .sort((a, b) => Number(b.ist_hauptperson) - Number(a.ist_hauptperson))
 
+  async function createWohnung(e: React.FormEvent) {
+    e.preventDefault()
+    if (!id) return
+    setSavingWohnung(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Nicht eingeloggt')
+
+      const bezeichnung = newWohnung.bezeichnung.trim() || newWohnung.whg_nr.trim()
+      if (!bezeichnung) throw new Error('Bezeichnung oder Wohnungs-Nr. erfassen')
+
+      const { data, error } = await supabase
+        .from('wohnungen')
+        .insert({
+          liegenschaft_id: id,
+          verwalter_id: user.id,
+          whg_nr: newWohnung.whg_nr.trim() || null,
+          bezeichnung,
+          etage: Number(newWohnung.etage || 0),
+          zimmer: Number(newWohnung.zimmer || 0),
+          flaeche_m2: newWohnung.flaeche_m2 ? Number(newWohnung.flaeche_m2) : null,
+          nettomiete: Number(newWohnung.nettomiete || 0),
+          nebenkosten_akonto: Number(newWohnung.nebenkosten_akonto || 0),
+          wohnungstyp: newWohnung.wohnungstyp,
+          status: 'leer',
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      toast.success('Wohnung hinzugefügt')
+      setWohnungen((prev) => [...prev, data as Wohnung])
+      setShowAddWohnung(false)
+      setNewWohnung({
+        whg_nr: '',
+        bezeichnung: '',
+        etage: '0',
+        zimmer: '3.5',
+        flaeche_m2: '',
+        nettomiete: '',
+        nebenkosten_akonto: '',
+        wohnungstyp: 'wohnung',
+        mieterHinterlegen: true,
+      })
+
+      if (newWohnung.mieterHinterlegen) {
+        router.push(`/dashboard/objekte/${id}/wohnungen/${data.id}/einzug`)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Wohnung konnte nicht erstellt werden')
+    } finally {
+      setSavingWohnung(false)
+    }
+  }
+
   const grouped: Record<string, Wohnung[]> = {}
 
   wohnungen.forEach((w) => {
@@ -238,12 +309,20 @@ export default function ObjektDetail() {
           </div>
         </div>
 
-        <button
-          onClick={() => router.back()}
-          className="text-sm text-gray-500 hover:text-gray-900"
-        >
-          ← Zurück
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddWohnung(true)}
+            className="px-4 py-2 bg-[hsl(214,76%,49%)] text-white text-sm font-semibold rounded-xl hover:bg-[hsl(214,76%,44%)] transition-colors"
+          >
+            + Wohnung hinzufügen
+          </button>
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            ← Zurück
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -433,8 +512,20 @@ export default function ObjektDetail() {
                             })}
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-400 italic">
-                            Kein Mieter zugeordnet
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-400 italic">
+                              Kein Mieter zugeordnet
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/dashboard/objekte/${id}/wohnungen/${w.id}/einzug`)
+                              }}
+                              className="text-xs px-2.5 py-1 rounded-lg border border-[hsl(214,76%,49%)] text-[hsl(214,76%,49%)] font-semibold hover:bg-blue-50"
+                            >
+                              Mieter hinterlegen
+                            </button>
                           </div>
                         )}
                       </div>
@@ -475,6 +566,147 @@ export default function ObjektDetail() {
         <div className="bg-white rounded-xl border p-12 text-center">
           <div className="text-4xl mb-2">🏠</div>
           <p className="text-gray-500">Noch keine Wohnungen.</p>
+          <button
+            onClick={() => setShowAddWohnung(true)}
+            className="mt-4 px-4 py-2 bg-[hsl(214,76%,49%)] text-white text-sm font-semibold rounded-xl hover:bg-[hsl(214,76%,44%)] transition-colors"
+          >
+            Erste Wohnung hinzufügen
+          </button>
+        </div>
+      )}
+
+      {showAddWohnung && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Wohnung hinzufügen</h2>
+                <p className="text-sm text-gray-500">Einheit erfassen und optional direkt den Mieter hinterlegen.</p>
+              </div>
+              <button
+                onClick={() => setShowAddWohnung(false)}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={createWohnung} className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Wohnungs-Nr.</label>
+                  <input
+                    value={newWohnung.whg_nr}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, whg_nr: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="1001 EG li"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Bezeichnung *</label>
+                  <input
+                    required
+                    value={newWohnung.bezeichnung}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, bezeichnung: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="3.5-Zimmerwohnung"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Typ</label>
+                  <select
+                    value={newWohnung.wohnungstyp}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, wohnungstyp: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {TYP_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.icon} {opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Etage</label>
+                  <input
+                    type="number"
+                    value={newWohnung.etage}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, etage: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Zimmer</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={newWohnung.zimmer}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, zimmer: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Fläche m²</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={newWohnung.flaeche_m2}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, flaeche_m2: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Nettomiete CHF</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newWohnung.nettomiete}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, nettomiete: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Nebenkosten CHF</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newWohnung.nebenkosten_akonto}
+                    onChange={(e) => setNewWohnung((f) => ({ ...f, nebenkosten_akonto: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={newWohnung.mieterHinterlegen}
+                  onChange={(e) => setNewWohnung((f) => ({ ...f, mieterHinterlegen: e.target.checked }))}
+                  className="rounded"
+                />
+                Nach dem Speichern direkt Mieter hinterlegen
+              </label>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddWohnung(false)}
+                  className="px-4 py-2 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingWohnung}
+                  className="flex-1 py-2.5 bg-[hsl(214,76%,49%)] text-white font-semibold rounded-xl text-sm disabled:opacity-50"
+                >
+                  {savingWohnung ? 'Wird gespeichert…' : 'Wohnung speichern'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
