@@ -11,8 +11,5 @@ alter table public.kalender_events
 -- Mietverhaeltnisse: flag for reminder sent
 alter table public.mietverhaeltnisse
   add column if not exists ablauf_reminder_sent boolean not null default false;
-
--- Wohnungen: Typ-Unterscheidung (Wohnung vs. Nebenobjekt)
-alter table public.wohnungen
-  add column if not exists typ text not null default 'wohnung'
-    check (typ in ('wohnung','nebenobjekt'));
+-- Note: wohnungstyp already exists from migration 003 with values:
+-- wohnung | gewerbe | bastelraum | parkplatz_aussen | einstellgarage | lager | sonstiges

@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   const { data: wohnungen } = lgIds.length
     ? await supabase
         .from("wohnungen")
-        .select("id, liegenschaft_id, status, nettomiete, nebenkosten_akonto, typ")
+        .select("id, liegenschaft_id, status, nettomiete, nebenkosten_akonto, wohnungstyp")
         .in("liegenschaft_id", lgIds)
     : { data: [] };
 
@@ -44,8 +44,8 @@ export default async function DashboardPage() {
     : { data: [] };
 
   // ── KPI-Berechnung ──
-  const alleWohnungen   = (wohnungen ?? []).filter(w => w.typ === "wohnung");
-  const nebenobjekte    = (wohnungen ?? []).filter(w => w.typ === "nebenobjekt");
+  const alleWohnungen   = (wohnungen ?? []).filter(w => w.wohnungstyp === "wohnung");
+  const nebenobjekte    = (wohnungen ?? []).filter(w => w.wohnungstyp !== "wohnung");
   const totalW          = alleWohnungen.length;
   const belegteW        = alleWohnungen.filter(w => w.status === "vermietet").length;
   const leerstandQuote  = totalW > 0 ? ((totalW - belegteW) / totalW * 100).toFixed(1) : "0.0";
@@ -62,9 +62,9 @@ export default async function DashboardPage() {
   // Per-Liegenschaft counts
   const wByLg = (wohnungen ?? []).reduce<Record<string, { w: number; n: number; belegt: number }>>((acc, w) => {
     if (!acc[w.liegenschaft_id]) acc[w.liegenschaft_id] = { w: 0, n: 0, belegt: 0 };
-    if (w.typ === "wohnung")     acc[w.liegenschaft_id].w++;
-    if (w.typ === "nebenobjekt") acc[w.liegenschaft_id].n++;
-    if (w.status === "vermietet" && w.typ === "wohnung") acc[w.liegenschaft_id].belegt++;
+    if (w.wohnungstyp === "wohnung")     acc[w.liegenschaft_id].w++;
+    if (w.wohnungstyp !== "wohnung") acc[w.liegenschaft_id].n++;
+    if (w.status === "vermietet" && w.wohnungstyp === "wohnung") acc[w.liegenschaft_id].belegt++;
     return acc;
   }, {});
 
