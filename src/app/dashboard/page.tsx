@@ -125,15 +125,16 @@ export default function DashboardPage() {
           <div className="p-6 text-gray-400">Keine Daten</div>
         ) : (
           liegenschaften.map((l) => (
-            <div
+            <Link
               key={l.id}
-              className="p-4 border-b hover:bg-gray-50 transition"
+              href={`/dashboard/objekte/${l.id}`}
+              className="block p-4 border-b hover:bg-gray-50 transition"
             >
               <div className="font-medium">{l.name}</div>
               <div className="text-sm text-gray-400">
                 {l.ort} · {l.anzahl_wohnungen} Wohnungen
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>
