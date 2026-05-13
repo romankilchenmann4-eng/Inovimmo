@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import SubNav from "@/components/ui/SubNav";
+
+const AUFTRAEGE_NAV = [
+  { href: "/dashboard/tickets",  label: "Tickets" },
+  { href: "/dashboard/offerten", label: "Offerten" },
+  { href: "/dashboard/escrow",   label: "Escrow & Zahlung" },
+];
 
 const STATUS_CONFIG = {
   neu:                  { label: "Neu",            cls: "badge-red",   icon: "🆕" },
@@ -50,6 +57,7 @@ export default async function TicketsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={AUFTRAEGE_NAV} />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -276,3 +276,92 @@ export async function sendTicketStatusUpdate({
     from: FROM, to, subject: `${s.icon} ${ticketTitel}: ${s.label}`, html,
   });
 }
+
+export async function sendMahnung({
+  to, mieterName, wohnung, liegenschaft, offenerBetrag, offeneMonate, mahnstufe,
+}: {
+  to: string; mieterName: string; wohnung: string; liegenschaft: string;
+  offenerBetrag: number; offeneMonate: string[]; mahnstufe: 1 | 2 | 3;
+}) {
+  const STUFEN = {
+    1: { titel: "Zahlungserinnerung", icon: "⚠️", farbe: "#D97706", frist: 10, ton: "freundlich" },
+    2: { titel: "2. Mahnung",         icon: "🔴", farbe: "#DC2626", frist: 7,  ton: "bestimmt" },
+    3: { titel: "Letzte Mahnung vor rechtlichen Schritten", icon: "🚨", farbe: "#991B1B", frist: 5, ton: "rechtlich" },
+  };
+  const s = STUFEN[mahnstufe];
+  const faellig = new Date(); faellig.setDate(faellig.getDate() + s.frist);
+
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F2040;">${s.icon} ${s.titel}</h2>
+    <p style="margin:0 0 20px;color:#6B7280;font-size:14px;">
+      ${mahnstufe === 1
+        ? `Hallo ${mieterName},<br>wir möchten Sie freundlich daran erinnern, dass folgende Mietzahlung noch ausstehend ist.`
+        : mahnstufe === 2
+        ? `Hallo ${mieterName},<br>trotz unserer Zahlungserinnerung ist der ausstehende Betrag noch nicht eingegangen. Wir bitten Sie dringend, die Zahlung umgehend vorzunehmen.`
+        : `Hallo ${mieterName},<br>wir stellen fest, dass der ausstehende Betrag trotz wiederholter Mahnungen nicht beglichen wurde. Dies ist unsere letzte Mahnung vor Einleitung rechtlicher Schritte.`
+      }
+    </p>
+    <div style="background:#FEF2F2;border:2px solid ${s.farbe};border-radius:12px;padding:20px;margin-bottom:20px;">
+      <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Ausstehender Betrag</p>
+      <p style="margin:0;font-size:28px;font-weight:700;color:${s.farbe};">CHF ${offenerBetrag.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</p>
+    </div>
+    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E5E7EB;border-radius:8px;padding:16px;margin-bottom:20px;">
+      ${kv("Wohnung", `${wohnung}`)}
+      ${kv("Liegenschaft", liegenschaft)}
+      ${kv("Offene Periode(n)", offeneMonate.join(", "))}
+      ${kv("Zahlungsfrist", faellig.toLocaleDateString("de-CH"))}
+    </table>
+    ${mahnstufe === 3 ? infoBox(
+      `⚖️ <strong>Rechtliche Hinweise:</strong> Bei ausbleibender Zahlung bis ${faellig.toLocaleDateString("de-CH")} sind wir gezwungen, das Betreibungsverfahren einzuleiten (SchKG Art. 67). Zusätzliche Kosten gehen zu Ihren Lasten.`,
+      "#FEF2F2", "#FECACA"
+    ) : infoBox(
+      `💳 Bitte überweisen Sie den Betrag auf das Ihnen bekannte Konto. Bei Fragen wenden Sie sich an Ihre Verwaltung.`
+    )}
+    ${btn("Kontakt Verwaltung", `${BASE_URL}/dashboard`)}
+  `, `${s.titel}: CHF ${offenerBetrag.toLocaleString("de-CH", { minimumFractionDigits: 2 })} ausstehend`);
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `${s.icon} ${s.titel} — CHF ${offenerBetrag.toLocaleString("de-CH", { minimumFractionDigits: 2 })} ausstehend`,
+    html,
+  });
+}
+
+export async function sendVertragAblauf({
+  to, verwalterName, mieterName, wohnung, liegenschaft, mietende, mietbeginn,
+}: {
+  to: string; verwalterName: string; mieterName: string;
+  wohnung: string; liegenschaft: string; mietende: string; mietbeginn: string;
+}) {
+  const endeDate = new Date(mietende);
+  const daysLeft = Math.ceil((endeDate.getTime() - Date.now()) / 86400000);
+
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F2040;">📅 Mietvertrag läuft ab</h2>
+    <p style="margin:0 0 20px;color:#6B7280;font-size:14px;">
+      Guten Tag ${verwalterName},<br>folgender Mietvertrag endet in <strong>${daysLeft} Tagen</strong>.
+      Bitte prüfen Sie, ob eine Verlängerung oder Neuvermietung gewünscht ist.
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E5E7EB;border-radius:8px;padding:16px;margin-bottom:20px;">
+      ${kv("Mieter/in", mieterName)}
+      ${kv("Wohnung", wohnung)}
+      ${kv("Liegenschaft", liegenschaft)}
+      ${kv("Mietbeginn", new Date(mietbeginn).toLocaleDateString("de-CH"))}
+      ${kv("Mietende", endeDate.toLocaleDateString("de-CH"))}
+      ${kv("Verbleibend", `${daysLeft} Tage`)}
+    </table>
+    ${infoBox(`
+      <strong>Empfohlene Aktionen:</strong><br>
+      • Mieter kontaktieren bezüglich Verlängerung oder Kündigung<br>
+      • Bei Auszug: Übergabetermin vereinbaren und Wohnungsabnahme planen<br>
+      • Neue Ausschreibung erstellen falls Neuvermietung gewünscht
+    `)}
+    ${btn("Zum Dashboard", `${BASE_URL}/dashboard/mietvertrag`)}
+  `, `Mietvertrag endet in ${daysLeft} Tagen — ${wohnung}, ${liegenschaft}`);
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `📅 Mietvertrag endet in ${daysLeft} Tagen — ${wohnung}`,
+    html,
+  });
+}

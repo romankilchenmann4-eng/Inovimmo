@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import EscrowActions from "./EscrowActions";
+import SubNav from "@/components/ui/SubNav";
+
+const AUFTRAEGE_NAV = [
+  { href: "/dashboard/tickets",  label: "Tickets" },
+  { href: "/dashboard/offerten", label: "Offerten" },
+  { href: "/dashboard/escrow",   label: "Escrow & Zahlung" },
+];
 
 export default async function EscrowPage() {
   const supabase = await createClient();
@@ -26,6 +33,7 @@ export default async function EscrowPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={AUFTRAEGE_NAV} />
       <div>
         <h2 className="text-xl font-bold text-gray-900">Escrow & Zahlungen</h2>
         <p className="text-sm text-gray-500">Sichere, treuhänderische Abwicklung aller Aufträge.</p>

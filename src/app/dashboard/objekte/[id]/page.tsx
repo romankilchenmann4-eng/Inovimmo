@@ -51,14 +51,24 @@ type Mietverhaeltnis = {
   mieter: Mieter
 }
 
+const TYP_OPTIONS = [
+  { value: 'wohnung',           label: 'Wohnung',          icon: '🏠' },
+  { value: 'gewerbe',           label: 'Gewerbe',           icon: '🏢' },
+  { value: 'bastelraum',        label: 'Bastelraum',        icon: '🔧' },
+  { value: 'parkplatz_aussen',  label: 'Parkplatz',         icon: '🚗' },
+  { value: 'einstellgarage',    label: 'Einstellgarage',    icon: '🏘️' },
+  { value: 'lager',             label: 'Lager',             icon: '📦' },
+  { value: 'sonstiges',         label: 'Sonstiges',         icon: '📌' },
+]
+
 const TYP_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  wohnung: { label: 'Wohnungen', icon: '🏠', color: 'bg-blue-50' },
-  bastelraum: { label: 'Bastelräume', icon: '🔧', color: 'bg-amber-50' },
-  parkplatz_aussen: { label: 'Parkplätze', icon: '🚗', color: 'bg-gray-50' },
-  einstellgarage: { label: 'Einstellgaragen', icon: '🏘️', color: 'bg-slate-50' },
-  gewerbe: { label: 'Gewerbe', icon: '🏢', color: 'bg-purple-50' },
-  lager: { label: 'Lager', icon: '📦', color: 'bg-stone-50' },
-  sonstiges: { label: 'Sonstiges', icon: '📌', color: 'bg-neutral-50' },
+  wohnung:          { label: 'Wohnungen',       icon: '🏠', color: 'bg-blue-50' },
+  bastelraum:       { label: 'Bastelräume',     icon: '🔧', color: 'bg-amber-50' },
+  parkplatz_aussen: { label: 'Parkplätze',      icon: '🚗', color: 'bg-gray-50' },
+  einstellgarage:   { label: 'Einstellgaragen', icon: '🏘️', color: 'bg-slate-50' },
+  gewerbe:          { label: 'Gewerbe',         icon: '🏢', color: 'bg-purple-50' },
+  lager:            { label: 'Lager',           icon: '📦', color: 'bg-stone-50' },
+  sonstiges:        { label: 'Sonstiges',       icon: '📌', color: 'bg-neutral-50' },
 }
 
 const fmt = (n: number) =>
@@ -328,6 +338,31 @@ export default function ObjektDetail() {
                               ❄️ unbeheizt
                             </span>
                           )}
+
+                          <select
+                            value={w.wohnungstyp || 'wohnung'}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={async (e) => {
+                              e.stopPropagation()
+                              const newTyp = e.target.value
+                              await supabase
+                                .from('wohnungen')
+                                .update({ wohnungstyp: newTyp })
+                                .eq('id', w.id)
+                              setWohnungen((prev) =>
+                                prev.map((x) =>
+                                  x.id === w.id ? { ...x, wohnungstyp: newTyp } : x
+                                )
+                              )
+                            }}
+                            className="text-xs border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 bg-white hover:border-gray-400 focus:outline-none focus:border-blue-400 cursor-pointer"
+                          >
+                            {TYP_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.icon} {opt.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="text-xs text-gray-500 flex gap-3 mb-2 flex-wrap">

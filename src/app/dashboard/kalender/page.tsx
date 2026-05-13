@@ -3,6 +3,13 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const TOOLS_NAV = [
+  { href: "/dashboard/screening", label: "Screening" },
+  { href: "/dashboard/uebergabe", label: "Übergabe" },
+  { href: "/dashboard/kalender",  label: "Kalender" },
+];
 
 type Event = { id: string; titel: string; typ: string; datum: string; zeit_von: string; zeit_bis: string; notiz?: string; liegenschaft?: string; status: string; };
 
@@ -66,6 +73,7 @@ export default function KalenderPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={TOOLS_NAV} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Kalender</h2>
