@@ -54,13 +54,15 @@ export default function QRRechnungPage() {
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser();
 
-    const [{ data: prof }, { data: wohn }, { data: bank }] = await Promise.all([
-      supabase.from("profiles").select("full_name,firma,adresse,plz,ort").eq("id", user!.id).single(),
-      supabase.from("wohnungen")
-        .select("id, bezeichnung, nettomiete, nebenkosten_akonto, liegenschaft:liegenschaften(name)")
-        .eq("status", "vermietet"),
+    const [{ data: prof }, { data: bank }] = await Promise.all([
+      supabase.from("profiles").select("full_name,firma,adresse,plz,ort,role").eq("id", user!.id).single(),
       supabase.from("bankkonten").select("id,bezeichnung,iban").eq("verwalter_id", user!.id).eq("aktiv", true),
     ]);
+    let wohnungenQuery = supabase.from("wohnungen")
+      .select("id, bezeichnung, nettomiete, nebenkosten_akonto, liegenschaft:liegenschaften(name)")
+      .eq("status", "vermietet");
+    if (prof?.role !== "admin") wohnungenQuery = wohnungenQuery.eq("verwalter_id", user!.id);
+    const { data: wohn } = await wohnungenQuery;
 
     setProfile(prof);
     setWohnungen((wohn ?? []) as unknown as Wohnung[]);

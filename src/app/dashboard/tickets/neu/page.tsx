@@ -39,9 +39,20 @@ export default function NeuesTicketPage() {
   });
 
   useEffect(() => {
-    supabase.from("liegenschaften").select("*").then(({ data }) => {
+    async function loadLiegenschaften() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      let query = supabase.from("liegenschaften").select("*");
+      if (profile?.role !== "admin") query = query.eq("verwalter_id", user.id);
+      const { data } = await query;
       setLiegenschaften(data ?? []);
-    });
+    }
+    loadLiegenschaften();
   }, []);
 
   useEffect(() => {

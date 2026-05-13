@@ -91,10 +91,18 @@ export default function BuchhaltungPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { data: wohnungen } = await supabase
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user!.id)
+      .single();
+
+    let wohnungenQuery = supabase
       .from("wohnungen")
       .select("id, bezeichnung, nettomiete, nebenkosten_akonto, status, liegenschaft:liegenschaften(id,name)")
       .eq("status", "vermietet");
+    if (profile?.role !== "admin") wohnungenQuery = wohnungenQuery.eq("verwalter_id", user!.id);
+    const { data: wohnungen } = await wohnungenQuery;
 
     if (!wohnungen?.length) { setKonten([]); setLoading(false); return; }
 

@@ -160,14 +160,18 @@ export default function MietvertragPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: prof }, { data: wohn }] = await Promise.all([
-        supabase.from("profiles").select("full_name,firma,adresse,plz,ort").eq("id", user.id).single(),
-        supabase.from("wohnungen").select(`
-          id, bezeichnung, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, bruttomiete, status,
-          liegenschaft:liegenschaften(id, name, strasse, hausnummer, plz, ort),
-          mietverhaeltnisse(id, mietbeginn, mietende, kaution_chf, mieter:mieter(vorname, nachname))
-        `).order("bezeichnung"),
-      ]);
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name,firma,adresse,plz,ort,role")
+        .eq("id", user.id)
+        .single();
+      let wohnungenQuery = supabase.from("wohnungen").select(`
+        id, bezeichnung, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, bruttomiete, status,
+        liegenschaft:liegenschaften(id, name, strasse, hausnummer, plz, ort),
+        mietverhaeltnisse(id, mietbeginn, mietende, kaution_chf, mieter:mieter(vorname, nachname))
+      `).order("bezeichnung");
+      if (prof?.role !== "admin") wohnungenQuery = wohnungenQuery.eq("verwalter_id", user.id);
+      const { data: wohn } = await wohnungenQuery;
 
       if (prof) {
         setProfile(prof);
