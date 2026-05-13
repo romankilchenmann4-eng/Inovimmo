@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { sendVertragAblauf } from "@/lib/email";
+import {
+  finishAutomationRun,
+  getAutomationAdminClient,
+  getAutomationTrigger,
+  isCronAuthorized,
+  startAutomationRun,
+} from "@/lib/automation/server";
 
 export const dynamic = "force-dynamic";
-
-function getAdminClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-function checkAuth(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  return token === secret;
-}
 
 /**
  * Monatlicher Vertrag-Ablauf-Reminder
@@ -25,11 +17,14 @@ function checkAuth(req: NextRequest) {
  * Informiert Verwalter über Mietverhältnisse, die in 30–60 Tagen enden.
  */
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = getAdminClient();
+  const supabase = getAutomationAdminClient();
+  const run = await startAutomationRun(supabase, "vertrag-reminder", getAutomationTrigger(req));
+
+  try {
   const today = new Date();
   const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
   const in60 = new Date(today); in60.setDate(in60.getDate() + 60);
@@ -53,11 +48,14 @@ export async function POST(req: NextRequest) {
     .lte("mietende", in60.toISOString().split("T")[0]);
 
   if (error) {
+    await finishAutomationRun(supabase, run, "failed", {}, error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   if (!ablaufend?.length) {
-    return NextResponse.json({ message: "Keine ablaufenden Verträge im Fenster 30–60 Tage", verarbeitet: 0 });
+    const summary = { message: "Keine ablaufenden Verträge im Fenster 30–60 Tage", verarbeitet: 0 };
+    await finishAutomationRun(supabase, run, "success", summary);
+    return NextResponse.json(summary);
   }
 
   let verarbeitet = 0;
@@ -103,9 +101,20 @@ export async function POST(req: NextRequest) {
     verarbeitet++;
   }
 
-  return NextResponse.json({
+  const summary = {
     message: "Vertrag-Reminder abgeschlossen",
     verarbeitet,
     timestamp: new Date().toISOString(),
-  });
+  };
+  await finishAutomationRun(supabase, run, "success", summary);
+  return NextResponse.json(summary);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Vertrag-Reminder fehlgeschlagen";
+    await finishAutomationRun(supabase, run, "failed", {}, message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  return POST(req);
 }

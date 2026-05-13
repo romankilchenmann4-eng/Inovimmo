@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { sendMahnung } from "@/lib/email";
+import {
+  finishAutomationRun,
+  getAutomationAdminClient,
+  getAutomationTrigger,
+  isCronAuthorized,
+  startAutomationRun,
+} from "@/lib/automation/server";
 
 export const dynamic = "force-dynamic";
-
-function getAdminClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-function checkAuth(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  return token === secret;
-}
 
 /**
  * Automatisches tägliches Mahnwesen
@@ -28,11 +20,14 @@ function checkAuth(req: NextRequest) {
  *  ≥30 Tage überfällig → 3. (Letzte) Mahnung vor Betreibung
  */
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = getAdminClient();
+  const supabase = getAutomationAdminClient();
+  const run = await startAutomationRun(supabase, "mahnungen", getAutomationTrigger(req));
+
+  try {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -58,11 +53,14 @@ export async function POST(req: NextRequest) {
     .not("wohnung_id", "is", null);
 
   if (sollErr) {
+    await finishAutomationRun(supabase, run, "failed", {}, sollErr.message);
     return NextResponse.json({ error: sollErr.message }, { status: 500 });
   }
 
   if (!sollBuchungen?.length) {
-    return NextResponse.json({ message: "Keine überfälligen Sollbuchungen", verarbeitet: 0 });
+    const summary = { message: "Keine überfälligen Sollbuchungen", verarbeitet: 0 };
+    await finishAutomationRun(supabase, run, "success", summary);
+    return NextResponse.json(summary);
   }
 
   // Get all corresponding zahlungen for those wohnungen+perioden
@@ -175,34 +173,22 @@ export async function POST(req: NextRequest) {
     erstellt++;
   }
 
-  return NextResponse.json({
+  const summary = {
     message: `Mahnlauf abgeschlossen`,
     erstellt,
     übersprungen,
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  await finishAutomationRun(supabase, run, "success", summary);
+  return NextResponse.json(summary);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Mahnlauf fehlgeschlagen";
+    await finishAutomationRun(supabase, run, "failed", {}, message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function GET(req: NextRequest) {
-  if (!checkAuth(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabase = getAdminClient();
-  const { count: offeneMahnungen } = await supabase
-    .from("mahnungen")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "offen");
-
-  const { count: autoErstellt } = await supabase
-    .from("mahnungen")
-    .select("id", { count: "exact", head: true })
-    .eq("auto_erstellt", true)
-    .eq("status", "offen");
-
-  return NextResponse.json({
-    offene_mahnungen: offeneMahnungen ?? 0,
-    davon_automatisch: autoErstellt ?? 0,
-    timestamp: new Date().toISOString(),
-  });
+  return POST(req);
 }

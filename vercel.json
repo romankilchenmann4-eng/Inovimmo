@@ -1,16 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron/monatssoll",
-      "schedule": "0 6 1 * *"
+      "path": "/api/cron/mahnungen",
+      "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/mahnungen",
-      "schedule": "0 9 * * *"
+      "path": "/api/cron/monatssoll",
+      "schedule": "0 5 1 * *"
     },
     {
       "path": "/api/cron/vertrag-reminder",
-      "schedule": "30 7 1 * *"
+      "schedule": "30 6 1 * *"
     }
   ]
 }

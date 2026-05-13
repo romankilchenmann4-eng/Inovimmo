@@ -91,6 +91,13 @@ const NAV: NavItem[] = [
     activeFor: ["/dashboard/marktplatz"],
   },
 
+  {
+    href: "/dashboard/automation",
+    label: "Automation",
+    icon: "⚙️",
+    roles: ["admin", "verwalter"],
+  },
+
   // ── Mieter ─────────────────────────────────────────────────
   {
     href: "/dashboard/mieter",
