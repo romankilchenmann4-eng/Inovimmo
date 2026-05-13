@@ -21,9 +21,13 @@ export default function ImpersonateButton({ userId, userName }: { userId: string
         toast.error(error ?? "Fehler");
         return;
       }
-      toast.success(`Ansicht als "${userName}" gestartet`);
-      router.push("/dashboard");
-      router.refresh();
+      const { actionLink } = await res.json();
+      if (!actionLink) {
+        toast.error("Login-Link fehlt");
+        return;
+      }
+      toast.success(`Login als "${userName}" wird geöffnet`);
+      window.location.href = actionLink;
     } finally {
       setLoading(false);
     }
@@ -35,7 +39,7 @@ export default function ImpersonateButton({ userId, userName }: { userId: string
       disabled={loading}
       className="text-xs px-3 py-1.5 rounded-lg bg-[hsl(214,100%,97%)] text-[hsl(214,76%,49%)] font-semibold hover:bg-[hsl(214,76%,49%)] hover:text-white transition-colors disabled:opacity-50"
     >
-      {loading ? "…" : "👁 Anzeigen als"}
+      {loading ? "…" : "Als User einloggen"}
     </button>
   );
 }
