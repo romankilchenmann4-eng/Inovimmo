@@ -48,6 +48,13 @@ const NAV: NavItem[] = [
   },
 
   {
+    href: "/dashboard/nachrichten",
+    label: "Nachrichten",
+    icon: "💬",
+    roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"],
+  },
+
+  {
     href: "/dashboard/buchhaltung",
     label: "Finanzen",
     icon: "💶",
