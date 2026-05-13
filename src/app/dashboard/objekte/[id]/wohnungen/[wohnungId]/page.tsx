@@ -189,7 +189,6 @@ export default function WohnungDetailPage() {
         <InfoCard label="Fläche" value={wohnung.flaeche_m2 ? `${wohnung.flaeche_m2} m²` : '-'} />
         <InfoCard label="Verteilschlüssel" value={wohnung.verteilschluessel_prozent ? `${wohnung.verteilschluessel_prozent}%` : '-'} />
         <InfoCard label="Etage" value={wohnung.etage !== undefined ? `${wohnung.etage}` : '-'} />
-        <InfoCard label="Beheizt" value={wohnung.beheizt ? 'Ja' : 'Nein'} />
         <InfoCard label="Kündigung" value={formatKuendigungstermine(wohnung.kuendigungstermine)} />
       </div>
 
@@ -252,7 +251,6 @@ export default function WohnungDetailPage() {
           <div>Bruttomiete: CHF {fmt(brutto)}</div>
           <div>Verteilschlüssel: {wohnung.verteilschluessel_prozent ?? '-'}%</div>
           <div>Fläche: {wohnung.flaeche_m2 ?? '-'} m²</div>
-          <div>Beheizt: {wohnung.beheizt ? 'Ja' : 'Nein'}</div>
           <div>Kündigungstermine: {formatKuendigungstermine(wohnung.kuendigungstermine)}</div>
           <div>Wohnungstyp: {wohnung.wohnungstyp || '-'}</div>
         </div>

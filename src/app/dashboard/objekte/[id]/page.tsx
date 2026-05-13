@@ -333,12 +333,6 @@ export default function ObjektDetail() {
                             {w.bezeichnung}
                           </span>
 
-                          {!w.beheizt && typ === 'wohnung' && (
-                            <span className="text-xs text-orange-600">
-                              ❄️ unbeheizt
-                            </span>
-                          )}
-
                           <select
                             value={w.wohnungstyp || 'wohnung'}
                             onClick={(e) => e.stopPropagation()}
