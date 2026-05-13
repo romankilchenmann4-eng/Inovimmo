@@ -4,36 +4,18 @@ import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
 function getSupabaseAdmin() {
-  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
 
-  const supabaseUrl =
-    rawUrl.match(/https:\/\/[A-Za-z0-9.-]+\.supabase\.co/)?.[0] ??
-    rawUrl.trim();
-
-  const serviceRoleKey =
-    rawKey.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/)?.[0] ??
-    rawKey.trim();
-
-  if (!supabaseUrl) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL fehlt');
-  }
-
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY fehlt');
-  }
+  if (!supabaseUrl) throw new Error('NEXT_PUBLIC_SUPABASE_URL fehlt');
+  if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY fehlt – bitte in Vercel unter Settings → Environment Variables eintragen');
 
   return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
 export async function adminCreateUser(formData: FormData): Promise<void> {
-  const supabaseAdmin = getSupabaseAdmin();
-
   const email = String(formData.get('email') || '').trim();
   const full_name = String(formData.get('full_name') || '').trim();
   const role = String(formData.get('role') || 'mieter').trim();
@@ -44,8 +26,17 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
     .map((v) => String(v))
     .filter(Boolean);
 
-  if (!email) throw new Error('E-Mail fehlt');
-  if (!password || password.length < 8) throw new Error('Passwort muss mindestens 8 Zeichen haben');
+  if (!email) redirect('/dashboard/admin/benutzer?error=E-Mail+fehlt');
+  if (!password || password.length < 8)
+    redirect('/dashboard/admin/benutzer?error=Passwort+muss+mindestens+8+Zeichen+haben');
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Konfigurationsfehler';
+    redirect(`/dashboard/admin/benutzer?error=${encodeURIComponent(msg)}`);
+  }
 
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -54,22 +45,20 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
   });
 
   if (error) {
-    throw new Error(error.message);
+    redirect(`/dashboard/admin/benutzer?error=${encodeURIComponent(error.message)}`);
   }
 
   const userId = data.user.id;
 
-  const { error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .upsert({
-      id: userId,
-      email,
-      full_name,
-      role,
-    });
+  const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
+    id: userId,
+    email,
+    full_name,
+    role,
+  });
 
   if (profileError) {
-    throw new Error(profileError.message);
+    redirect(`/dashboard/admin/benutzer?error=${encodeURIComponent(profileError.message)}`);
   }
 
   if (liegenschaftIds.length > 0) {
@@ -81,14 +70,12 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
 
     const { error: berechtigungError } = await supabaseAdmin
       .from('liegenschaft_berechtigungen')
-      .upsert(inserts, {
-        onConflict: 'user_id,liegenschaft_id',
-      });
+      .upsert(inserts, { onConflict: 'user_id,liegenschaft_id' });
 
     if (berechtigungError) {
-      throw new Error(berechtigungError.message);
+      redirect(`/dashboard/admin/benutzer?error=${encodeURIComponent(berechtigungError.message)}`);
     }
   }
 
-  redirect('/dashboard/admin/benutzer');
+  redirect('/dashboard/admin/benutzer?success=1');
 }

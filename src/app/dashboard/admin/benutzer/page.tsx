@@ -12,7 +12,8 @@ const ROLE_BADGE: Record<string, string> = {
 
 const inp = "w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]/20 focus:border-[hsl(214,76%,49%)] transition-all placeholder:text-gray-400";
 
-export default async function AdminBenutzerPage() {
+export default async function AdminBenutzerPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
+  const { error: flashError, success: flashSuccess } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -41,6 +42,17 @@ export default async function AdminBenutzerPage() {
         <h2 className="text-xl font-bold text-gray-900">Benutzerverwaltung</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Alle registrierten Benutzer auf der Plattform</p>
       </div>
+
+      {flashError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+          ⚠️ {decodeURIComponent(flashError)}
+        </div>
+      )}
+      {flashSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
+          ✓ Benutzer erfolgreich erstellt
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4">

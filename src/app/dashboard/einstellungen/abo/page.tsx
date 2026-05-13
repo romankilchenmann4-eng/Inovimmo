@@ -126,45 +126,42 @@ function AboContent() {
   const currentPlan = abo?.plan ?? "kostenlos";
   const isActive = abo?.status === "aktiv" || abo?.status === "trialing";
 
-  const inp = "w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-white/5 text-white";
-
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Abo & Pläne</h1>
-        <p className="text-white/50 text-sm mt-1">Skalieren Sie Inovimmo mit Ihrem Portfolio</p>
+        <h1 className="text-xl font-bold text-gray-900">Abo & Pläne</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Skalieren Sie Inovimmo mit Ihrem Portfolio</p>
       </div>
 
-      {/* Current Status */}
-      <div className="card p-5">
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-5">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <p className="text-xs text-white/40 mb-1">Aktueller Plan</p>
+            <p className="text-xs text-muted-foreground mb-1">Aktueller Plan</p>
             <div className="flex items-center gap-2">
-              <p className="text-xl font-bold text-white capitalize">{currentPlan}</p>
+              <p className="text-xl font-bold text-gray-900 capitalize">{currentPlan}</p>
               {abo && (
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"
+                  isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                 }`}>
                   {abo.status === "aktiv" ? "Aktiv" : abo.status === "past_due" ? "Zahlung ausstehend" : abo.status === "trialing" ? "Testphase" : "Inaktiv"}
                 </span>
               )}
             </div>
             {abo?.current_period_end && (
-              <p className="text-xs text-white/30 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Nächste Verlängerung: {new Date(abo.current_period_end).toLocaleDateString("de-CH")}
               </p>
             )}
           </div>
 
           <div className="text-right">
-            <p className="text-xs text-white/40 mb-1">Wohnungen</p>
-            <p className="text-lg font-bold text-white">
+            <p className="text-xs text-muted-foreground mb-1">Wohnungen</p>
+            <p className="text-lg font-bold text-gray-900">
               {wohnungenCount} / {abo?.wohnungen_limit === 9999 ? "∞" : (abo?.wohnungen_limit ?? 5)}
             </p>
-            <div className="w-32 h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+            <div className="w-32 h-1.5 bg-gray-200 rounded-full mt-1.5 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${wohnungenCount >= (abo?.wohnungen_limit ?? 5) ? "bg-red-400" : "bg-emerald-400"}`}
+                className={`h-full rounded-full transition-all ${wohnungenCount >= (abo?.wohnungen_limit ?? 5) ? "bg-red-500" : "bg-green-500"}`}
                 style={{ width: `${Math.min(100, (wohnungenCount / (abo?.wohnungen_limit === 9999 ? 100 : (abo?.wohnungen_limit ?? 5))) * 100)}%` }}
               />
             </div>
@@ -175,21 +172,20 @@ function AboContent() {
           <button
             onClick={openPortal}
             disabled={portalLoading}
-            className="mt-4 text-xs text-[hsl(214,76%,60%)] hover:underline disabled:opacity-50"
+            className="mt-4 text-xs text-[hsl(214,76%,49%)] hover:underline disabled:opacity-50"
           >
             {portalLoading ? "Lädt…" : "Abo verwalten / kündigen →"}
           </button>
         )}
       </div>
 
-      {/* Plans */}
       <div className="grid lg:grid-cols-3 gap-4">
         {PLANS.map(plan => {
           const isCurrent = currentPlan === plan.key;
           return (
             <div
               key={plan.key}
-              className={`card p-5 relative ${plan.highlight ? "border-[hsl(214,76%,49%)] border" : ""}`}
+              className={`bg-white rounded-2xl border shadow-sm p-5 relative ${plan.highlight ? "border-[hsl(214,76%,49%)]" : "border-border"}`}
             >
               {plan.highlight && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[hsl(214,76%,49%)] text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -197,25 +193,25 @@ function AboContent() {
                 </div>
               )}
               <div className="mb-4">
-                <h3 className="font-bold text-white text-lg">{plan.name}</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl font-bold text-white">{plan.price}</span>
-                  <span className="text-white/40 text-sm">{plan.period}</span>
+                  <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
+                  <span className="text-muted-foreground text-sm">{plan.period}</span>
                 </div>
-                <p className="text-xs text-white/50 mt-1">{plan.limit}</p>
+                <p className="text-xs text-muted-foreground mt-1">{plan.limit}</p>
               </div>
 
               <ul className="space-y-2 mb-5">
                 {plan.features.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-white/70">
-                    <span className="text-emerald-400 flex-shrink-0 text-xs">✓</span>
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                    <span className="text-green-500 flex-shrink-0 text-xs">✓</span>
                     {f}
                   </li>
                 ))}
               </ul>
 
               {isCurrent ? (
-                <div className={`w-full py-2 text-center text-sm font-semibold rounded-lg ${isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/40"}`}>
+                <div className={`w-full py-2 text-center text-sm font-semibold rounded-lg ${isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
                   {isActive ? "Aktueller Plan" : "Inaktiv"}
                 </div>
               ) : (
@@ -225,7 +221,7 @@ function AboContent() {
                   className={`w-full py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 ${
                     plan.highlight
                       ? "bg-[hsl(214,76%,49%)] hover:bg-[hsl(214,76%,42%)] text-white"
-                      : "bg-white/10 hover:bg-white/15 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                   }`}
                 >
                   {loading ? "Lädt…" : currentPlan === "kostenlos" ? "Jetzt abonnieren" : "Wechseln"}
@@ -236,20 +232,19 @@ function AboContent() {
         })}
       </div>
 
-      {/* Kostenlos info */}
       {currentPlan === "kostenlos" && (
-        <div className="card p-4 flex items-start gap-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
           <span className="text-lg">ℹ️</span>
           <div className="text-sm">
-            <p className="font-semibold text-white">Kostenloser Plan — 5 Wohnungen inklusive</p>
-            <p className="text-white/50 mt-0.5">
-              Kein Kreditkarte erforderlich. Upgraden Sie jederzeit für mehr Wohnungen und Premium-Features.
+            <p className="font-semibold text-blue-900">Kostenloser Plan — 5 Wohnungen inklusive</p>
+            <p className="text-blue-600 mt-0.5">
+              Keine Kreditkarte erforderlich. Upgraden Sie jederzeit für mehr Wohnungen und Premium-Features.
             </p>
           </div>
         </div>
       )}
 
-      <div className="card p-4 text-xs text-white/30 space-y-1">
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-4 text-xs text-muted-foreground space-y-1">
         <p>Alle Preise in CHF inkl. MwSt. · Monatliche Kündigung jederzeit möglich.</p>
         <p>Zahlungsabwicklung sicher über Stripe · Keine Daten werden gespeichert.</p>
       </div>
