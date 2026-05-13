@@ -9,6 +9,7 @@ const FINANZEN_NAV = [
   { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
   { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
   { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/bankkonten",   label: "Bankkonten" },
   { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
 ];
 
@@ -102,7 +103,7 @@ export default function BuchhaltungPage() {
       const wBuchungen = (buchungen ?? []).filter(b => b.wohnung_id === w.id);
       const soll = wBuchungen.filter(b => TYP_CONFIG[b.typ]?.seite === "soll").reduce((s, b) => s + Number(b.betrag), 0);
       const haben = wBuchungen.filter(b => TYP_CONFIG[b.typ]?.seite === "haben").reduce((s, b) => s + Number(b.betrag), 0);
-      return { wohnung: w as Wohnung, soll, haben, saldo: haben - soll, buchungen: wBuchungen };
+      return { wohnung: w as unknown as Wohnung, soll, haben, saldo: haben - soll, buchungen: wBuchungen };
     });
 
     setKonten(result);

@@ -9,6 +9,7 @@ const FINANZEN_NAV = [
   { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
   { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
   { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/bankkonten",   label: "Bankkonten" },
   { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
 ];
 import type { QRRechnungInput } from "@/app/api/qr-rechnung/route";
@@ -63,7 +64,7 @@ export default function QRRechnungPage() {
     ]);
 
     setProfile(prof);
-    setWohnungen(wohn ?? []);
+    setWohnungen((wohn ?? []) as unknown as Wohnung[]);
     setBankkonten(bank ?? []);
 
     if (prof) {

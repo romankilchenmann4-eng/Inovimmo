@@ -9,6 +9,7 @@ const FINANZEN_NAV = [
   { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
   { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
   { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/bankkonten",   label: "Bankkonten" },
   { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
 ];
 

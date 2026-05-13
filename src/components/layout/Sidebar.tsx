@@ -59,7 +59,7 @@ const NAV: NavItem[] = [
     label: "Finanzen",
     icon: "💶",
     roles: ["admin", "verwalter"],
-    activeFor: ["/dashboard/nebkosten", "/dashboard/mahnungen", "/dashboard/qr-rechnung"],
+    activeFor: ["/dashboard/nebkosten", "/dashboard/mahnungen", "/dashboard/bankkonten", "/dashboard/qr-rechnung"],
   },
 
   {
