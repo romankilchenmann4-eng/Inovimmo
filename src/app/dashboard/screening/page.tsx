@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const TOOLS_NAV = [
+  { href: "/dashboard/screening", label: "Screening" },
+  { href: "/dashboard/uebergabe", label: "Übergabe" },
+  { href: "/dashboard/kalender",  label: "Kalender" },
+];
 
 type ScreeningResult = {
   betreibungen: number;
@@ -82,6 +89,7 @@ export default function ScreeningPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={TOOLS_NAV} />
       <div>
         <h2 className="text-xl font-bold text-gray-900">Mieter-Screening</h2>
         <p className="text-sm text-gray-500">Betreibungsauszug · Bonität · ID-Verifizierung · CHF 25/Check</p>

@@ -13,46 +13,136 @@ type NavItem = {
   roles: Role[];
   section?: string;
   badge?: string;
+  activeFor?: string[];
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊", roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"], section: "Übersicht" },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: "📊",
+    roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"],
+    section: "Hauptmenü",
+  },
 
-  { href: "/dashboard/objekte", label: "Objekte & Mieter", icon: "🏢", roles: ["admin", "verwalter", "eigentümer"], section: "Verwaltung" },
-  { href: "/dashboard/objekte/import", label: "Mieterspiegel importieren", icon: "📥", roles: ["admin", "verwalter"], badge: "KI" },
+  {
+    href: "/dashboard/objekte",
+    label: "Liegenschaften",
+    icon: "🏢",
+    roles: ["admin", "verwalter", "eigentümer"],
+  },
 
-  { href: "/dashboard/tickets", label: "Tickets", icon: "🎫", roles: ["admin", "verwalter", "dienstleister", "mieter"] },
-  { href: "/dashboard/offerten", label: "Offerten", icon: "📋", roles: ["admin", "verwalter", "dienstleister"] },
-  { href: "/dashboard/escrow", label: "Escrow & Zahlung", icon: "🔒", roles: ["admin", "verwalter", "dienstleister"] },
+  {
+    href: "/dashboard/tickets",
+    label: "Aufträge",
+    icon: "🔨",
+    roles: ["admin", "verwalter", "dienstleister", "mieter"],
+    activeFor: ["/dashboard/offerten", "/dashboard/escrow"],
+  },
 
-  { href: "/dashboard/nebkosten", label: "Nebenkosten", icon: "📑", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/buchhaltung", label: "Buchhaltung", icon: "💼", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/mahnungen", label: "Mahnwesen", icon: "📬", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/qr-rechnung", label: "QR-Rechnung", icon: "🏦", roles: ["admin", "verwalter"] },
+  {
+    href: "/dashboard/buchhaltung",
+    label: "Finanzen",
+    icon: "💶",
+    roles: ["admin", "verwalter"],
+    activeFor: ["/dashboard/nebkosten", "/dashboard/mahnungen", "/dashboard/qr-rechnung"],
+  },
 
-  { href: "/dashboard/mietvertrag", label: "Mietvertrag", icon: "📝", roles: ["admin", "verwalter"], section: "Mietrecht" },
-  { href: "/dashboard/mietzinserhoehung", label: "Mietzinserhöhungen", icon: "🧾", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/mieter/anpassungen", label: "Mietzinsanpassungen", icon: "🧾", roles: ["mieter"], section: "Mietrecht" },
+  {
+    href: "/dashboard/dokumente",
+    label: "Dokumente & Recht",
+    icon: "📁",
+    roles: ["admin", "verwalter", "eigentümer"],
+    activeFor: [
+      "/dashboard/mietvertrag",
+      "/dashboard/mietzinserhoehung",
+      "/dashboard/dokumente/jahresbericht",
+    ],
+  },
 
-  { href: "/dashboard/dokumente", label: "Dokumente", icon: "📁", roles: ["admin", "verwalter", "eigentümer"], section: "Tools" },
-  { href: "/dashboard/dokumente/jahresbericht", label: "Jahresbericht", icon: "📊", roles: ["admin", "verwalter", "eigentümer"] },
-  { href: "/dashboard/uebergabe", label: "Wohnungsübergabe", icon: "🔑", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/screening", label: "Mieter-Screening", icon: "🔍", roles: ["admin", "verwalter"] },
-  { href: "/dashboard/kalender", label: "Kalender", icon: "📅", roles: ["admin", "verwalter"] },
+  {
+    href: "/dashboard/screening",
+    label: "Tools",
+    icon: "🛠",
+    roles: ["admin", "verwalter"],
+    activeFor: ["/dashboard/uebergabe", "/dashboard/kalender"],
+  },
 
-  { href: "/dashboard/ki-analyse", label: "KI-Mietpreisanalyse", icon: "📈", roles: ["admin", "verwalter"], section: "KI" },
-  { href: "/dashboard/ki-assistent", label: "KI-Assistent", icon: "🤖", roles: ["admin", "verwalter", "eigentümer", "mieter"] },
+  {
+    href: "/dashboard/ki-assistent",
+    label: "KI",
+    icon: "🤖",
+    roles: ["admin", "verwalter", "eigentümer", "mieter"],
+    activeFor: ["/dashboard/ki-analyse"],
+  },
 
-  { href: "/dashboard/stwe", label: "STWE", icon: "🏛", roles: ["admin", "verwalter"], section: "Erweitert" },
-  { href: "/dashboard/marktplatz", label: "Marktplatz", icon: "🛒", roles: ["admin", "verwalter"] },
+  {
+    href: "/dashboard/stwe",
+    label: "Erweitert",
+    icon: "🏛",
+    roles: ["admin", "verwalter"],
+    activeFor: ["/dashboard/marktplatz"],
+  },
 
-  { href: "/dashboard/mieter", label: "Meine Wohnung", icon: "🏠", roles: ["mieter"], section: "Mein Bereich" },
-  { href: "/dashboard/dienstleister", label: "Mein Betrieb", icon: "🔧", roles: ["dienstleister"], section: "Mein Betrieb" },
+  // ── Mieter ─────────────────────────────────────────────────
+  {
+    href: "/dashboard/mieter",
+    label: "Meine Wohnung",
+    icon: "🏠",
+    roles: ["mieter"],
+    section: "Mein Bereich",
+  },
+  {
+    href: "/dashboard/mieter/anpassungen",
+    label: "Mietzinsanpassungen",
+    icon: "🧾",
+    roles: ["mieter"],
+  },
+  {
+    href: "/dashboard/tickets",
+    label: "Tickets",
+    icon: "🎫",
+    roles: ["mieter"],
+  },
 
-  { href: "/dashboard/admin/benutzer", label: "Benutzerverwaltung", icon: "👥", roles: ["admin"], section: "Admin" },
+  // ── Dienstleister ───────────────────────────────────────────
+  {
+    href: "/dashboard/dienstleister",
+    label: "Mein Betrieb",
+    icon: "🔧",
+    roles: ["dienstleister"],
+    section: "Mein Betrieb",
+  },
+  {
+    href: "/dashboard/offerten",
+    label: "Ausschreibungen",
+    icon: "📋",
+    roles: ["dienstleister"],
+  },
 
-  { href: "/dashboard/einstellungen", label: "Einstellungen", icon: "⚙️", roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"], section: "Konto" },
-  { href: "/dashboard/einstellungen/abo", label: "Abo & Pläne", icon: "💳", roles: ["admin", "verwalter"] },
+  // ── Admin ───────────────────────────────────────────────────
+  {
+    href: "/dashboard/admin/benutzer",
+    label: "Benutzerverwaltung",
+    icon: "👥",
+    roles: ["admin"],
+    section: "Admin",
+  },
+
+  // ── Konto ───────────────────────────────────────────────────
+  {
+    href: "/dashboard/einstellungen",
+    label: "Einstellungen",
+    icon: "⚙️",
+    roles: ["admin", "verwalter", "eigentümer", "dienstleister", "mieter"],
+    section: "Konto",
+  },
+  {
+    href: "/dashboard/einstellungen/abo",
+    label: "Abo & Pläne",
+    icon: "💳",
+    roles: ["admin", "verwalter"],
+  },
 ];
 
 export default function Sidebar({ profile }: { profile: Profile | null }) {
@@ -88,13 +178,11 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
         {filtered.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
+            (item.activeFor?.some((p) => pathname.startsWith(p)) ?? false);
 
           const showSection = item.section && item.section !== lastSection;
-
-          if (showSection) {
-            lastSection = item.section!;
-          }
+          if (showSection) lastSection = item.section!;
 
           return (
             <div key={item.href + item.label}>
@@ -112,9 +200,7 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
                   {item.icon}
                 </span>
 
-                <span className="flex-1 text-sm truncate">
-                  {item.label}
-                </span>
+                <span className="flex-1 text-sm truncate">{item.label}</span>
 
                 {item.badge && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[hsl(214,76%,49%)] text-white flex-shrink-0">
@@ -132,7 +218,6 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
           <div className="w-8 h-8 rounded-full bg-[hsl(214,76%,49%)] flex items-center justify-center text-xs font-bold flex-shrink-0">
             {initials}
           </div>
-
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">
               {profile?.full_name || "Benutzer"}
@@ -157,6 +242,5 @@ function normalizeRole(role?: string | null): Role {
   ) {
     return role;
   }
-
   return "mieter";
 }
