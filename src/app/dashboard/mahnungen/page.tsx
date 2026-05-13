@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const FINANZEN_NAV = [
+  { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
+  { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
+  { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
+];
 
 type OffenerPosten = {
   wohnung_id: string;
@@ -151,6 +159,7 @@ export default function MahnungenPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={FINANZEN_NAV} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Mahnwesen</h2>

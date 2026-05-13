@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const FINANZEN_NAV = [
+  { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
+  { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
+  { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
+];
 
 type Liegenschaft = { id: string; name: string; ort: string };
 type Wohnung = { id: string; bezeichnung: string; flaeche_m2: number; nebenkosten_akonto: number; mieter_id?: string };
@@ -214,6 +222,7 @@ export default function NebenkostenPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={FINANZEN_NAV} />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Nebenkostenabrechnung</h2>

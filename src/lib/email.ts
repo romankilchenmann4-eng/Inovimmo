@@ -326,3 +326,42 @@ export async function sendMahnung({
     html,
   });
 }
+
+export async function sendVertragAblauf({
+  to, verwalterName, mieterName, wohnung, liegenschaft, mietende, mietbeginn,
+}: {
+  to: string; verwalterName: string; mieterName: string;
+  wohnung: string; liegenschaft: string; mietende: string; mietbeginn: string;
+}) {
+  const endeDate = new Date(mietende);
+  const daysLeft = Math.ceil((endeDate.getTime() - Date.now()) / 86400000);
+
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F2040;">📅 Mietvertrag läuft ab</h2>
+    <p style="margin:0 0 20px;color:#6B7280;font-size:14px;">
+      Guten Tag ${verwalterName},<br>folgender Mietvertrag endet in <strong>${daysLeft} Tagen</strong>.
+      Bitte prüfen Sie, ob eine Verlängerung oder Neuvermietung gewünscht ist.
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E5E7EB;border-radius:8px;padding:16px;margin-bottom:20px;">
+      ${kv("Mieter/in", mieterName)}
+      ${kv("Wohnung", wohnung)}
+      ${kv("Liegenschaft", liegenschaft)}
+      ${kv("Mietbeginn", new Date(mietbeginn).toLocaleDateString("de-CH"))}
+      ${kv("Mietende", endeDate.toLocaleDateString("de-CH"))}
+      ${kv("Verbleibend", `${daysLeft} Tage`)}
+    </table>
+    ${infoBox(`
+      <strong>Empfohlene Aktionen:</strong><br>
+      • Mieter kontaktieren bezüglich Verlängerung oder Kündigung<br>
+      • Bei Auszug: Übergabetermin vereinbaren und Wohnungsabnahme planen<br>
+      • Neue Ausschreibung erstellen falls Neuvermietung gewünscht
+    `)}
+    ${btn("Zum Dashboard", `${BASE_URL}/dashboard/mietvertrag`)}
+  `, `Mietvertrag endet in ${daysLeft} Tagen — ${wohnung}, ${liegenschaft}`);
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `📅 Mietvertrag endet in ${daysLeft} Tagen — ${wohnung}`,
+    html,
+  });
+}

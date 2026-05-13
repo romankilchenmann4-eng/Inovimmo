@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const FINANZEN_NAV = [
+  { href: "/dashboard/buchhaltung",  label: "Buchhaltung" },
+  { href: "/dashboard/nebkosten",    label: "Nebenkosten" },
+  { href: "/dashboard/mahnungen",    label: "Mahnwesen" },
+  { href: "/dashboard/qr-rechnung",  label: "QR-Rechnung" },
+];
 import type { QRRechnungInput } from "@/app/api/qr-rechnung/route";
 
 type Wohnung = { id: string; bezeichnung: string; nettomiete: number; nebenkosten_akonto: number; liegenschaft: { name: string } | null };
@@ -139,6 +147,7 @@ export default function QRRechnungPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <SubNav items={FINANZEN_NAV} />
       <div>
         <h2 className="text-xl font-bold text-gray-900">QR-Rechnung Generator</h2>
         <p className="text-sm text-gray-500">Swiss Payment Standard 2.0 — konforme QR-Rechnungen als PDF</p>

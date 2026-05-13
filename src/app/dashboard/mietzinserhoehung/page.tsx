@@ -1,5 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import SubNav from "@/components/ui/SubNav";
+
+const DOKUMENTE_NAV = [
+  { href: "/dashboard/dokumente",              label: "Dokumente" },
+  { href: "/dashboard/mietvertrag",            label: "Mietvertrag" },
+  { href: "/dashboard/mietzinserhoehung",      label: "Mietzinserhöhung" },
+  { href: "/dashboard/dokumente/jahresbericht", label: "Jahresbericht" },
+];
 
 export default async function MietzinsErhoehungPage() {
   const supabase = await createClient();
@@ -28,6 +36,7 @@ export default async function MietzinsErhoehungPage() {
 
   return (
     <div className="space-y-6">
+      <SubNav items={DOKUMENTE_NAV} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mietzinserhöhungen</h1>
 

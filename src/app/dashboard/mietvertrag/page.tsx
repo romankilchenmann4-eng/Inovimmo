@@ -3,6 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import SubNav from "@/components/ui/SubNav";
+
+const DOKUMENTE_NAV = [
+  { href: "/dashboard/dokumente",              label: "Dokumente" },
+  { href: "/dashboard/mietvertrag",            label: "Mietvertrag" },
+  { href: "/dashboard/mietzinserhoehung",      label: "Mietzinserhöhung" },
+  { href: "/dashboard/dokumente/jahresbericht", label: "Jahresbericht" },
+];
 import type { MietvertragWohnraumInput } from "@/app/api/mietvertrag/wohnraum/route";
 import type { MietvertragNebenraumInput } from "@/app/api/mietvertrag/nebenraum/route";
 
@@ -253,6 +261,7 @@ export default function MietvertragPage() {
 
   return (
     <div className="space-y-6">
+      <SubNav items={DOKUMENTE_NAV} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Mietvertrag</h1>

@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import OffertFormClient from "./OffertFormClient";
 import Link from "next/link";
+import SubNav from "@/components/ui/SubNav";
+
+const AUFTRAEGE_NAV = [
+  { href: "/dashboard/tickets",  label: "Tickets" },
+  { href: "/dashboard/offerten", label: "Offerten" },
+  { href: "/dashboard/escrow",   label: "Escrow & Zahlung" },
+];
 
 type TicketRow = {
   id: string;
@@ -215,6 +222,7 @@ export default async function OffertenPage() {
 
   return (
     <div className="space-y-6">
+      <SubNav items={AUFTRAEGE_NAV} />
       <div>
         <h1 className="text-2xl font-bold text-white">Offerten-Übersicht</h1>
         <p className="text-white/50 text-sm mt-1">Alle offenen Ausschreibungen und eingegangenen Offerten</p>
