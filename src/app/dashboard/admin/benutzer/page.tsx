@@ -127,6 +127,10 @@ export default async function AdminBenutzerPage() {
                 <input name="email" type="email" required className={inp} placeholder="maria@beispiel.ch" />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Passwort *</label>
+                <input name="password" type="password" required minLength={8} className={inp} placeholder="Min. 8 Zeichen" />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Rolle</label>
                 <select name="role" defaultValue="mieter" className={inp}>
                   <option value="admin">Admin</option>
@@ -136,7 +140,7 @@ export default async function AdminBenutzerPage() {
                   <option value="mieter">Mieter</option>
                 </select>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Liegenschaften</label>
                 <select name="liegenschaft_ids" multiple className={`${inp} h-32`}>
                   {(liegenschaften ?? []).map((l: { id: string; name: string }) => (

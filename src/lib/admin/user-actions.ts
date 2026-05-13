@@ -37,18 +37,19 @@ export async function adminCreateUser(formData: FormData): Promise<void> {
   const email = String(formData.get('email') || '').trim();
   const full_name = String(formData.get('full_name') || '').trim();
   const role = String(formData.get('role') || 'mieter').trim();
+  const password = String(formData.get('password') || '').trim();
 
   const liegenschaftIds = formData
     .getAll('liegenschaft_ids')
     .map((v) => String(v))
     .filter(Boolean);
 
-  if (!email) {
-    throw new Error('E-Mail fehlt');
-  }
+  if (!email) throw new Error('E-Mail fehlt');
+  if (!password || password.length < 8) throw new Error('Passwort muss mindestens 8 Zeichen haben');
 
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
+    password,
     email_confirm: true,
   });
 
