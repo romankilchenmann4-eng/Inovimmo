@@ -63,7 +63,7 @@ export default function QRRechnungPage() {
     ]);
 
     setProfile(prof);
-    setWohnungen(wohn ?? []);
+    setWohnungen((wohn ?? []) as unknown as Wohnung[]);
     setBankkonten(bank ?? []);
 
     if (prof) {

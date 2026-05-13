@@ -22,6 +22,8 @@ type Dokument = {
   mime_type?: string;
   groesse_bytes: number;
   created_at: string;
+  liegenschaft_id?: string | null;
+  wohnung_id?: string | null;
   liegenschaft?: { name: string } | null;
   wohnung?: { bezeichnung: string } | null;
 };
