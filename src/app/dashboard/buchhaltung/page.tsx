@@ -23,6 +23,7 @@ type Wohnung = {
 
 type Buchung = {
   id: string;
+  wohnung_id: string;
   typ: string;
   buchungstext: string;
   betrag: number;
@@ -39,6 +40,14 @@ type Mietkonto = {
   haben: number;
   saldo: number;
   buchungen: Buchung[];
+};
+
+type Monatsstatus = {
+  monat: number;
+  soll: number;
+  zahlung: number;
+  offen: number;
+  bezahlt: boolean;
 };
 
 const MONATE = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
@@ -169,9 +178,80 @@ export default function BuchhaltungPage() {
     loadKonten();
   }
 
+  async function mietzinsErhalten(konto: Mietkonto, monat: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const brutto = Number(konto.wohnung.nettomiete) + Number(konto.wohnung.nebenkosten_akonto);
+    const valuta = `${filterJahr}-${String(monat).padStart(2,"0")}-01`;
+    const sollExists = konto.buchungen.some(
+      b => b.typ === "miete_soll" && b.periode_monat === monat && b.periode_jahr === filterJahr
+    );
+    const zahlungExists = konto.buchungen.some(
+      b => b.typ === "miete_zahlung" && b.periode_monat === monat && b.periode_jahr === filterJahr
+    );
+
+    const rows: Record<string, unknown>[] = [];
+    if (!sollExists) {
+      rows.push({
+        verwalter_id: user!.id,
+        wohnung_id: konto.wohnung.id,
+        liegenschaft_id: konto.wohnung.liegenschaft?.id,
+        typ: "miete_soll",
+        buchungstext: `Miete ${MONATE[monat-1]} ${filterJahr}`,
+        betrag: brutto,
+        valuta,
+        periode_monat: monat,
+        periode_jahr: filterJahr,
+        manuell: true,
+      });
+    }
+    if (!zahlungExists) {
+      rows.push({
+        verwalter_id: user!.id,
+        wohnung_id: konto.wohnung.id,
+        liegenschaft_id: konto.wohnung.liegenschaft?.id,
+        typ: "miete_zahlung",
+        buchungstext: `Mietzins erhalten ${MONATE[monat-1]} ${filterJahr}`,
+        betrag: brutto,
+        valuta: new Date().toISOString().split("T")[0],
+        periode_monat: monat,
+        periode_jahr: filterJahr,
+        manuell: true,
+      });
+    }
+
+    if (rows.length === 0) {
+      toast.info("Dieser Monat ist bereits verbucht");
+      return;
+    }
+
+    const { error } = await supabase.from("buchungen").insert(rows);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${konto.wohnung.bezeichnung}: ${MONATE[monat-1]} ${filterJahr} verbucht`);
+    loadKonten();
+  }
+
+  function monatsstatus(konto: Mietkonto, monat: number): Monatsstatus {
+    const soll = konto.buchungen
+      .filter(b => TYP_CONFIG[b.typ]?.seite === "soll" && b.periode_monat === monat)
+      .reduce((sum, b) => sum + Number(b.betrag), 0);
+    const zahlung = konto.buchungen
+      .filter(b => TYP_CONFIG[b.typ]?.seite === "haben" && b.periode_monat === monat)
+      .reduce((sum, b) => sum + Number(b.betrag), 0);
+    const offen = Math.max(0, soll - zahlung);
+    return { monat, soll, zahlung, offen, bezahlt: soll > 0 && zahlung >= soll };
+  }
+
   const selectedKonto = konten.find(k => k.wohnung.id === selected);
   const totalSaldo = konten.reduce((s, k) => s + k.saldo, 0);
   const offene = konten.filter(k => k.saldo < 0).length;
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const monthTotals = MONATE.map((_, i) => {
+    const monat = i + 1;
+    const soll = konten.reduce((sum, konto) => sum + monatsstatus(konto, monat).soll, 0);
+    const zahlung = konten.reduce((sum, konto) => sum + monatsstatus(konto, monat).zahlung, 0);
+    return { monat, soll, zahlung, offen: Math.max(0, soll - zahlung), bezahlt: soll > 0 && zahlung >= soll };
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -207,6 +287,49 @@ export default function BuchhaltungPage() {
         <div className="stat-card">
           <p className="text-xs text-gray-400 mb-1">Vermietete Wohnungen</p>
           <p className="text-2xl font-bold text-gray-900">{konten.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-sm text-gray-900">Monatliche Übersicht {filterJahr}</h3>
+            <p className="text-xs text-gray-400">Soll, Zahlungseingang und offene Differenz über alle Mietobjekte</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="table-header">Monat</th>
+                <th className="table-header text-right">Soll</th>
+                <th className="table-header text-right">Erhalten</th>
+                <th className="table-header text-right">Offen</th>
+                <th className="table-header">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthTotals.map(m => (
+                <tr key={m.monat} className="table-row">
+                  <td className="table-cell text-sm font-medium">{MONATE[m.monat-1]}</td>
+                  <td className="table-cell text-sm text-right">CHF {m.soll.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</td>
+                  <td className="table-cell text-sm text-right text-green-700">CHF {m.zahlung.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</td>
+                  <td className={`table-cell text-sm text-right font-medium ${m.offen > 0 ? "text-red-600" : "text-gray-500"}`}>
+                    CHF {m.offen.toLocaleString("de-CH", { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="table-cell">
+                    {m.bezahlt ? (
+                      <span className="badge-green">Bezahlt</span>
+                    ) : m.soll > 0 ? (
+                      <span className="badge-amber">Teilweise / offen</span>
+                    ) : (
+                      <span className="badge-gray">Noch nicht gebucht</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -284,6 +407,57 @@ export default function BuchhaltungPage() {
               </div>
 
               {/* Buchungen */}
+              <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100">
+                  <h4 className="font-semibold text-sm text-gray-900">Monatskontrolle {filterJahr}</h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px]">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="table-header">Monat</th>
+                        <th className="table-header text-right">Soll</th>
+                        <th className="table-header text-right">Erhalten</th>
+                        <th className="table-header">Status</th>
+                        <th className="table-header text-right">Aktion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {MONATE.map((label, index) => {
+                        const status = monatsstatus(selectedKonto, index + 1);
+                        const isFuture = filterJahr > currentYear || (filterJahr === currentYear && status.monat > currentMonth);
+                        return (
+                          <tr key={label} className="table-row">
+                            <td className="table-cell text-sm font-medium">{label}</td>
+                            <td className="table-cell text-sm text-right">CHF {status.soll.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</td>
+                            <td className="table-cell text-sm text-right text-green-700">CHF {status.zahlung.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</td>
+                            <td className="table-cell">
+                              {status.bezahlt ? (
+                                <span className="badge-green">Mietzins erhalten</span>
+                              ) : status.soll > 0 ? (
+                                <span className="badge-amber">Offen CHF {status.offen.toLocaleString("de-CH", { minimumFractionDigits: 2 })}</span>
+                              ) : (
+                                <span className="badge-gray">Nicht verbucht</span>
+                              )}
+                            </td>
+                            <td className="table-cell text-right">
+                              <button
+                                type="button"
+                                onClick={() => mietzinsErhalten(selectedKonto, status.monat)}
+                                disabled={status.bezahlt || isFuture}
+                                className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Mietzins erhalten
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-100">
                   <h4 className="font-semibold text-sm text-gray-900">Buchungen {filterJahr}</h4>
