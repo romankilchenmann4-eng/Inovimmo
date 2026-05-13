@@ -93,8 +93,28 @@ export default function NachrichtenPage() {
       betreff: form.betreff,
       inhalt: form.inhalt,
     });
+    if (error) { setSending(false); toast.error(error.message); return; }
+
+    // Fire-and-forget email notification to recipient
+    const empfaenger = profiles.find(p => p.id === form.empfaenger_id);
+    if (empfaenger?.email) {
+      fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "nachricht",
+          to: empfaenger.email,
+          data: {
+            empfaengerName: empfaenger.full_name || empfaenger.email,
+            absenderName: me!.full_name || me!.email || "Jemand",
+            betreff: form.betreff,
+            vorschau: form.inhalt.slice(0, 100),
+          },
+        }),
+      }).catch(() => {});
+    }
+
     setSending(false);
-    if (error) { toast.error(error.message); return; }
     toast.success("Nachricht gesendet");
     setShowCompose(false);
     setForm({ empfaenger_id: "", betreff: "", inhalt: "" });

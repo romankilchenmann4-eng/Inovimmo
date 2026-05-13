@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types";
 
 type Role = "admin" | "verwalter" | "eigentümer" | "dienstleister" | "mieter";
@@ -163,6 +165,18 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
   const role = normalizeRole(profile?.role);
   const filtered = NAV.filter((n) => n.roles.includes(role));
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const supabase = createClient();
+    supabase
+      .from("nachrichten")
+      .select("id", { count: "exact", head: true })
+      .eq("empfaenger_id", profile.id)
+      .eq("gelesen", false)
+      .then(({ count }) => setUnreadCount(count ?? 0));
+  }, [profile?.id]);
 
   const initials =
     profile?.full_name
@@ -216,11 +230,15 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
 
                 <span className="flex-1 text-sm truncate">{item.label}</span>
 
-                {item.badge && (
+                {item.href === "/dashboard/nachrichten" && unreadCount > 0 ? (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-500 text-white flex-shrink-0 min-w-[18px] text-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : item.badge ? (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[hsl(214,76%,49%)] text-white flex-shrink-0">
                     {item.badge}
                   </span>
-                )}
+                ) : null}
               </Link>
             </div>
           );

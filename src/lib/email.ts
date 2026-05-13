@@ -18,7 +18,7 @@ function baseTemplate(content: string, preheader = "") {
   <title>Inovimmo</title>
 </head>
 <body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;">${preheader}</div>` : ""}
+  ${"${preheader ? `<div style=\"display:none;max-height:0;overflow:hidden;\">${preheader}</div>` : \"\"}"}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:32px 16px;">
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
@@ -35,12 +35,12 @@ function baseTemplate(content: string, preheader = "") {
         </td></tr>
         <!-- Content -->
         <tr><td style="background:white;padding:32px;border-radius:0 0 12px 12px;">
-          ${content}
+          ${"${content}"}
           <!-- Footer -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB;">
             <tr><td style="color:#9CA3AF;font-size:11px;text-align:center;">
               © 2026 Inovimmo · Zürich, Schweiz<br>
-              <a href="${BASE_URL}" style="color:#1D6EE0;text-decoration:none;">inovimmo.ch</a>
+              <a href="${"${BASE_URL}"}" style="color:#1D6EE0;text-decoration:none;">inovimmo.ch</a>
             </td></tr>
           </table>
         </td></tr>
@@ -54,21 +54,21 @@ function baseTemplate(content: string, preheader = "") {
 function btn(text: string, url: string) {
   return `<table cellpadding="0" cellspacing="0" style="margin:24px 0;">
     <tr><td style="background:#1D6EE0;border-radius:8px;padding:12px 24px;">
-      <a href="${url}" style="color:white;font-weight:600;font-size:14px;text-decoration:none;">${text}</a>
+      <a href="${"${url}"}" style="color:white;font-weight:600;font-size:14px;text-decoration:none;">${"${text}"}</a>
     </td></tr>
   </table>`;
 }
 
 function infoBox(content: string, color = "#EFF6FF", border = "#BFDBFE") {
-  return `<div style="background:${color};border:1px solid ${border};border-radius:8px;padding:16px;margin:16px 0;font-size:13px;color:#374151;line-height:1.6;">
-    ${content}
+  return `<div style="background:${"${color}"};border:1px solid ${"${border}"};border-radius:8px;padding:16px;margin:16px 0;font-size:13px;color:#374151;line-height:1.6;">
+    ${"${content}"}
   </div>`;
 }
 
 function kv(label: string, value: string) {
   return `<tr>
-    <td style="padding:8px 0;color:#6B7280;font-size:13px;width:140px;">${label}</td>
-    <td style="padding:8px 0;color:#111827;font-size:13px;font-weight:500;">${value}</td>
+    <td style="padding:8px 0;color:#6B7280;font-size:13px;width:140px;">${"${label}"}</td>
+    <td style="padding:8px 0;color:#111827;font-size:13px;font-weight:500;">${"${value}"}</td>
   </tr>`;
 }
 
@@ -323,6 +323,30 @@ export async function sendMahnung({
   return getResend().emails.send({
     from: FROM, to,
     subject: `${s.icon} ${s.titel} — CHF ${offenerBetrag.toLocaleString("de-CH", { minimumFractionDigits: 2 })} ausstehend`,
+    html,
+  });
+}
+
+export async function sendNachrichtBenachrichtigung({
+  to, empfaengerName, absenderName, betreff, vorschau,
+}: {
+  to: string; empfaengerName: string; absenderName: string; betreff: string; vorschau: string;
+}) {
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F2040;">💬 Neue Nachricht</h2>
+    <p style="margin:0 0 20px;color:#6B7280;font-size:14px;">Hallo ${empfaengerName},<br>Sie haben eine neue Nachricht von <strong>${absenderName}</strong> erhalten.</p>
+    <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E5E7EB;border-radius:8px;padding:16px;margin-bottom:20px;">
+      ${kv("Von", absenderName)}
+      ${kv("Betreff", betreff)}
+    </table>
+    ${infoBox(`"${vorschau}${vorschau.length >= 100 ? "…" : ""}"`)}
+    ${btn("Nachricht lesen", `${BASE_URL}/dashboard/nachrichten`)}
+    <p style="margin:16px 0 0;color:#9CA3AF;font-size:12px;">Diese Nachricht wurde über Inovimmo gesendet und ist nur in Ihrer Inbox sichtbar.</p>
+  `, `Neue Nachricht von ${absenderName}: ${betreff}`);
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `💬 ${absenderName}: ${betreff}`,
     html,
   });
 }

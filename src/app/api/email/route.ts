@@ -9,6 +9,7 @@ import {
   sendWillkommen,
   sendTicketStatusUpdate,
   sendMahnung,
+  sendNachrichtBenachrichtigung,
 } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,9 @@ export async function POST(req: NextRequest) {
         break;
       case "mahnung":
         await sendMahnung({ to, ...data });
+        break;
+      case "nachricht":
+        await sendNachrichtBenachrichtigung({ to, ...data });
         break;
       default:
         return NextResponse.json({ error: `Unbekannter Email-Typ: ${type}` }, { status: 400 });
