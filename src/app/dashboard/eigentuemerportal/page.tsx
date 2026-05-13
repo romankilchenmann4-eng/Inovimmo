@@ -35,7 +35,7 @@ export default async function EigentuemerPortalPage() {
       id, name, strasse, hausnummer, plz, ort, objekttyp, baujahr,
       wohnungen(id, bezeichnung, status, nettomiete, nebenkosten_akonto, zimmer, flaeche_m2)
     `)
-    .eq("eigentümer_id", user.id)
+    .eq("verwalter_id", user.id)
     .order("name");
 
   const { data: tickets } = await supabase
