@@ -29,7 +29,14 @@ const NAV: NavItem[] = [
     href: "/dashboard/objekte",
     label: "Liegenschaften",
     icon: "🏢",
-    roles: ["admin", "verwalter", "eigentümer"],
+    roles: ["admin", "verwalter"],
+  },
+
+  {
+    href: "/dashboard/eigentuemerportal",
+    label: "Meine Liegenschaften",
+    icon: "🏛",
+    roles: ["eigentümer"],
   },
 
   {
