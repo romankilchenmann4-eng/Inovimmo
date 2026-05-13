@@ -35,20 +35,24 @@ type Mietverhaeltnis = {
   wohnung_id: string
   ist_vertragspartner: boolean
   ist_hauptperson: boolean
+  mietbeginn?: string
+  mietende?: string
   mieter: Mieter
 }
 
 const fmt = (n: number) =>
-  n.toLocaleString('de-CH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+  n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
+  vermietet: { label: 'Vermietet', cls: 'badge-green' },
+  leer:      { label: 'Leer',      cls: 'badge-gray' },
+  reserviert:{ label: 'Reserviert',cls: 'badge-amber' },
+}
 
 export default function WohnungDetailPage() {
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
-
   const objektId = params.id as string
   const wohnungId = params.wohnungId as string
 
@@ -59,266 +63,180 @@ export default function WohnungDetailPage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-
       const { data: w } = await supabase
-        .from('wohnungen')
-        .select('*')
-        .eq('id', wohnungId)
-        .maybeSingle()
-
+        .from('wohnungen').select('*').eq('id', wohnungId).maybeSingle()
       setWohnung(w)
 
       const { data: mv } = await supabase
         .from('mietverhaeltnisse')
-        .select(`
-          wohnung_id,
-          ist_vertragspartner,
-          ist_hauptperson,
-          mieter:mieter_id (
-            id, vorname, nachname,
-            telefon_mobil, telefon_festnetz, email
-          )
-        `)
+        .select('wohnung_id, ist_vertragspartner, ist_hauptperson, mietbeginn, mietende, mieter:mieter_id(id, vorname, nachname, telefon_mobil, telefon_festnetz, email)')
         .eq('wohnung_id', wohnungId)
-
       setMietverhaeltnisse((mv as any) || [])
       setLoading(false)
     }
-
     if (wohnungId) load()
-  }, [wohnungId, supabase])
+  }, [wohnungId])
 
-  if (loading) {
-    return (
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="animate-pulse h-32 bg-gray-200 rounded" />
-      </div>
-    )
-  }
-
-  if (!wohnung) {
-    return (
-      <div className="p-6 max-w-5xl mx-auto">
-        Wohnung nicht gefunden.
-      </div>
-    )
-  }
+  if (loading) return <div className="p-8"><div className="animate-pulse h-24 bg-gray-100 rounded-xl" /></div>
+  if (!wohnung) return <div className="p-8 text-sm text-gray-500">Wohnung nicht gefunden.</div>
 
   const netto = Number(wohnung.nettomiete || 0)
   const nk = Number(wohnung.nebenkosten_akonto || 0)
   const brutto = netto + nk
+  const status = STATUS_LABEL[wohnung.status ?? ''] ?? { label: wohnung.status ?? '—', cls: 'badge-gray' }
+  const base = `/dashboard/objekte/${objektId}/wohnungen/${wohnungId}`
+
+  const actions = [
+    { href: `${base}/einzug`,     label: 'Einzug erfassen',       sub: 'Mieter anlegen und Mietverhältnis starten' },
+    { href: `${base}/auszug`,     label: 'Auszug erfassen',       sub: 'Auszug, Rückgabe und Kaution dokumentieren' },
+    { href: `${base}/mietvertrag`,label: 'Mietvertrag hochladen', sub: 'Vertrag oder Nachtrag ablegen' },
+    { href: `${base}/uebergabe`,  label: 'Übergabeprotokoll',     sub: 'Einzugs- oder Auszugsprotokoll erstellen' },
+    { href: `${base}/inserat`,    label: 'Inserat erstellen',     sub: 'Leerstand vermarkten' },
+    { href: `${base}/historie`,   label: 'Historie',              sub: 'Frühere Mieter und Ereignisse' },
+  ]
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-5">
+      {/* Breadcrumb */}
       <button
         onClick={() => router.push(`/dashboard/objekte/${objektId}`)}
-        className="text-sm text-gray-500 hover:text-gray-900"
+        className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
       >
         ← Zurück zur Liegenschaft
       </button>
 
-      <div className="bg-white rounded-xl border p-6">
-        <div className="flex items-start justify-between gap-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
-              {wohnung.whg_nr && `${wohnung.whg_nr} · `}
-              {wohnung.bezeichnung || 'Wohnung'}
-            </h1>
-
-            <p className="text-sm text-gray-500 mt-1">
-              {wohnung.wohnungstyp || 'Wohnung'} · Status: {wohnung.status || '-'}
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold text-gray-900">
+                {wohnung.whg_nr ? `${wohnung.whg_nr} · ` : ''}{wohnung.bezeichnung || 'Wohnung'}
+              </h1>
+              <span className={status.cls}>{status.label}</span>
+            </div>
+            <p className="text-sm text-gray-400 mt-1">
+              {wohnung.wohnungstyp === 'wohnung' || !wohnung.wohnungstyp ? 'Wohnung' : wohnung.wohnungstyp}
+              {wohnung.etage !== undefined ? ` · ${wohnung.etage}. Etage` : ''}
             </p>
           </div>
-
           <div className="text-right">
-            <div className="text-2xl font-bold">
-              CHF {fmt(brutto)}
-            </div>
+            <p className="text-2xl font-semibold text-gray-900">CHF {fmt(brutto)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Netto {fmt(netto)} + NK {fmt(nk)}</p>
+          </div>
+        </div>
 
-            <div className="text-xs text-gray-500">
-              Netto CHF {fmt(netto)} + NK CHF {fmt(nk)}
+        {/* Kennzahlen */}
+        <div className="grid grid-cols-6 gap-4 mt-5 pt-5 border-t border-gray-100">
+          {[
+            { label: 'Zimmer', value: wohnung.zimmer ? `${wohnung.zimmer}` : '—' },
+            { label: 'Fläche', value: wohnung.flaeche_m2 ? `${wohnung.flaeche_m2} m²` : '—' },
+            { label: 'Verteilschlüssel', value: wohnung.verteilschluessel_prozent ? `${wohnung.verteilschluessel_prozent}%` : '—' },
+            { label: 'Beheizt', value: wohnung.beheizt ? 'Ja' : 'Nein' },
+            { label: 'Etage', value: wohnung.etage !== undefined ? `${wohnung.etage}` : '—' },
+            { label: 'Kündigung', value: formatKuendigungstermine(wohnung.kuendigungstermine) },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+              <p className="text-sm font-medium text-gray-800">{value}</p>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Aktuelle Mieter */}
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Mietverhältnis</h2>
+          {mietverhaeltnisse.length === 0 ? (
+            <p className="text-sm text-gray-400">Kein aktiver Mieter zugeordnet.</p>
+          ) : (
+            <div className="space-y-4">
+              {mietverhaeltnisse.map((mv, i) => {
+                const m = mv.mieter
+                return (
+                  <div key={i} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {[m?.vorname, m?.nachname].filter(Boolean).join(' ') || '—'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {mv.ist_hauptperson ? 'Hauptmieter' : mv.ist_vertragspartner ? 'Vertragspartner' : 'Mitmieter'}
+                        </p>
+                      </div>
+                      {mv.mietbeginn && (
+                        <p className="text-xs text-gray-400">
+                          seit {new Date(mv.mietbeginn).toLocaleDateString('de-CH')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-0.5">
+                      {m?.email && <p className="text-xs text-gray-500">{m.email}</p>}
+                      {m?.telefon_mobil && <p className="text-xs text-gray-500">{m.telefon_mobil}</p>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Mietzins-Basis */}
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Mietzins-Grundlage</h2>
+          <div className="space-y-2">
+            {[
+              { label: 'Nettomiete',        value: `CHF ${fmt(netto)}` },
+              { label: 'Nebenkosten Akonto',value: `CHF ${fmt(nk)}` },
+              { label: 'Bruttomiete',        value: `CHF ${fmt(brutto)}`, bold: true },
+              { label: 'Verteilschlüssel',  value: `${wohnung.verteilschluessel_prozent ?? '—'}%` },
+              { label: 'Fläche',            value: wohnung.flaeche_m2 ? `${wohnung.flaeche_m2} m²` : '—' },
+              { label: 'Wohnungstyp',       value: wohnung.wohnungstyp || '—' },
+              { label: 'Kündigungstermine', value: formatKuendigungstermine(wohnung.kuendigungstermine) },
+            ].map(({ label, value, bold }) => (
+              <div key={label} className={`flex justify-between py-1.5 ${bold ? 'border-t border-gray-100 mt-1 pt-2.5' : ''}`}>
+                <span className="text-xs text-gray-500">{label}</span>
+                <span className={`text-xs ${bold ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-semibold mb-4">Aktionen</h2>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/einzug`}
-            title="Einzug erfassen"
-            description="Neuen Mieter erfassen und Mietverhältnis starten."
-          />
-
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/auszug`}
-            title="Auszug erfassen"
-            description="Auszug, Rückgabe und Historie dokumentieren."
-          />
-
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/mietvertrag`}
-            title="Mietvertrag hochladen"
-            description="Mietvertrag oder Nachträge zur Wohnung ablegen."
-          />
-
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/uebergabe`}
-            title="Übergabeprotokoll"
-            description="Einzugs- oder Auszugsprotokoll erstellen."
-          />
-
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/inserat`}
-            title="Inserat erstellen"
-            description="Leerstand vermarkten und Inserat vorbereiten."
-          />
-
-          <ActionLink
-            href={`/dashboard/objekte/${objektId}/wohnungen/${wohnungId}/historie`}
-            title="Historie anzeigen"
-            description="Frühere Mieter und Ereignisse ansehen."
-          />
+      {/* Aktionen */}
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Aktionen</h2>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {actions.map(({ href, label, sub }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors group"
+            >
+              <div>
+                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+              </div>
+              <span className="text-gray-300 group-hover:text-gray-500 transition-colors text-sm">→</span>
+            </Link>
+          ))}
         </div>
       </div>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        <InfoCard label="Zimmer" value={wohnung.zimmer ? `${wohnung.zimmer}` : '-'} />
-        <InfoCard label="Fläche" value={wohnung.flaeche_m2 ? `${wohnung.flaeche_m2} m²` : '-'} />
-        <InfoCard label="Verteilschlüssel" value={wohnung.verteilschluessel_prozent ? `${wohnung.verteilschluessel_prozent}%` : '-'} />
-        <InfoCard label="Etage" value={wohnung.etage !== undefined ? `${wohnung.etage}` : '-'} />
-        <InfoCard label="Kündigung" value={formatKuendigungstermine(wohnung.kuendigungstermine)} />
-      </div>
-
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-semibold mb-4">Mieter</h2>
-
-        {mietverhaeltnisse.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            Kein Mieter zugeordnet.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {mietverhaeltnisse.map((mv, index) => {
-              const m = mv.mieter
-
-              return (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="font-medium">
-                    {[m?.vorname, m?.nachname].filter(Boolean).join(' ') || 'Mieter'}
-                  </div>
-
-                  <div className="text-sm text-gray-500">
-                    {mv.ist_hauptperson && 'Hauptperson'}
-                    {mv.ist_vertragspartner && !mv.ist_hauptperson && 'Vertragspartner'}
-                    {!mv.ist_hauptperson && !mv.ist_vertragspartner && 'Mieter'}
-                  </div>
-
-                  {m?.email && (
-                    <div className="text-sm text-gray-500 mt-1">
-                      E-Mail: {m.email}
-                    </div>
-                  )}
-
-                  {m?.telefon_mobil && (
-                    <div className="text-sm text-gray-500">
-                      Mobil: {m.telefon_mobil}
-                    </div>
-                  )}
-
-                  {m?.telefon_festnetz && (
-                    <div className="text-sm text-gray-500">
-                      Festnetz: {m.telefon_festnetz}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-blue-50 rounded-xl border border-blue-100 p-6">
-        <h2 className="font-semibold mb-2">
-          Grundlage für Mietzinserhöhung
-        </h2>
-
-        <div className="grid md:grid-cols-2 gap-3 text-sm">
-          <div>Aktuelle Nettomiete: CHF {fmt(netto)}</div>
-          <div>Nebenkosten Akonto: CHF {fmt(nk)}</div>
-          <div>Bruttomiete: CHF {fmt(brutto)}</div>
-          <div>Verteilschlüssel: {wohnung.verteilschluessel_prozent ?? '-'}%</div>
-          <div>Fläche: {wohnung.flaeche_m2 ?? '-'} m²</div>
-          <div>Kündigungstermine: {formatKuendigungstermine(wohnung.kuendigungstermine)}</div>
-          <div>Wohnungstyp: {wohnung.wohnungstyp || '-'}</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ActionLink({
-  href,
-  title,
-  description,
-}: {
-  href: string
-  title: string
-  description: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-lg border p-4 hover:bg-gray-50 transition block"
-    >
-      <div className="font-medium">{title}</div>
-      <div className="mt-1 text-xs text-gray-500">{description}</div>
-    </Link>
-  )
-}
-
-function InfoCard({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
-  return (
-    <div className="bg-white rounded-xl border p-4">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="text-xl font-bold">{value}</p>
     </div>
   )
 }
 
 function formatKuendigungstermine(value?: string | null) {
-  if (!value) return '-'
-
+  if (!value) return '—'
   const monate: Record<string, string> = {
-    '01': 'Januar',
-    '02': 'Februar',
-    '03': 'März',
-    '04': 'April',
-    '05': 'Mai',
-    '06': 'Juni',
-    '07': 'Juli',
-    '08': 'August',
-    '09': 'September',
-    '10': 'Oktober',
-    '11': 'November',
-    '12': 'Dezember',
+    '01':'Jan','02':'Feb','03':'Mär','04':'Apr','05':'Mai','06':'Jun',
+    '07':'Jul','08':'Aug','09':'Sep','10':'Okt','11':'Nov','12':'Dez',
   }
-
   const cleaned = value.replace(/\D/g, '')
   const parts = cleaned.match(/.{1,2}/g) ?? []
-
-  const formatted = parts
-    .map((m) => monate[m])
-    .filter(Boolean)
-    .join(', ')
-
+  const formatted = parts.map(m => monate[m]).filter(Boolean).join(', ')
   return formatted || value
 }

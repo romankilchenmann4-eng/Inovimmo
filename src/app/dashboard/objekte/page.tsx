@@ -5,15 +5,26 @@ export default async function ObjektePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: liegenschaften } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user!.id)
+    .single();
+
+  const isAdmin = profile?.role === "admin";
+
+  let query = supabase
     .from("liegenschaften")
     .select(`
       id, name, strasse, hausnummer, plz, ort, kanton, baujahr,
       anzahl_wohnungen, objekttyp, created_at,
       wohnungen(id, status, nettomiete)
     `)
-    .eq("verwalter_id", user!.id)
     .order("created_at", { ascending: false });
+
+  if (!isAdmin) query = query.eq("verwalter_id", user!.id);
+
+  const { data: liegenschaften } = await query;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

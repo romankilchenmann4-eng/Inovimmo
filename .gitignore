@@ -1,27 +1,10 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
-
-# Next.js
-.next/
-out/
-build/
-
-# Environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Debug
+.env*.local
+.vercel
+.next
+node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Misc
+pnpm-debug.log*
 .DS_Store
-*.pem
-.vercel
-tsconfig.tsbuildinfo
+.claude/

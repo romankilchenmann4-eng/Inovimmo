@@ -1,58 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import {
-  sendTicketBestaetigung,
-  sendOfferteEingegangen,
+  sendAuftragAbgeschlossen,
   sendAuftragVergeben,
   sendEscrowEinbezahlt,
-  sendAuftragAbgeschlossen,
-  sendWillkommen,
+  sendOfferteEingegangen,
+  sendTicketBestaetigung,
   sendTicketStatusUpdate,
-  sendMahnung,
+  sendWillkommen,
 } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const handlers = {
+  ticket_bestaetigung: sendTicketBestaetigung,
+  offerte_eingegangen: sendOfferteEingegangen,
+  auftrag_vergeben: sendAuftragVergeben,
+  escrow_einbezahlt: sendEscrowEinbezahlt,
+  auftrag_abgeschlossen: sendAuftragAbgeschlossen,
+  willkommen: sendWillkommen,
+  ticket_status_update: sendTicketStatusUpdate,
+};
 
-  const body = await req.json();
-  const { type, to, data } = body;
+type EmailType = keyof typeof handlers;
+
+export async function POST(req: NextRequest) {
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ sent: false, error: "RESEND_API_KEY fehlt." }, { status: 503 });
+  }
+
+  let body: { type?: EmailType; payload?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ sent: false, error: "Ungültige Anfrage." }, { status: 400 });
+  }
+
+  if (!body.type || !(body.type in handlers)) {
+    return NextResponse.json({ sent: false, error: "Unbekannter E-Mail-Typ." }, { status: 400 });
+  }
 
   try {
-    switch (type) {
-      case "ticket_bestaetigung":
-        await sendTicketBestaetigung({ to, ...data });
-        break;
-      case "offerte_eingegangen":
-        await sendOfferteEingegangen({ to, ...data });
-        break;
-      case "auftrag_vergeben":
-        await sendAuftragVergeben({ to, ...data });
-        break;
-      case "escrow_einbezahlt":
-        await sendEscrowEinbezahlt({ to, ...data });
-        break;
-      case "auftrag_abgeschlossen":
-        await sendAuftragAbgeschlossen({ to, ...data });
-        break;
-      case "willkommen":
-        await sendWillkommen({ to, ...data });
-        break;
-      case "ticket_status":
-        await sendTicketStatusUpdate({ to, ...data });
-        break;
-      case "mahnung":
-        await sendMahnung({ to, ...data });
-        break;
-      default:
-        return NextResponse.json({ error: `Unbekannter Email-Typ: ${type}` }, { status: 400 });
-    }
-    return NextResponse.json({ sent: true });
+    const result = await handlers[body.type](body.payload as never);
+    return NextResponse.json({ sent: true, result });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Email-Fehler";
-    return NextResponse.json({ sent: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { sent: false, error: err instanceof Error ? err.message : "E-Mail konnte nicht gesendet werden." },
+      { status: 500 }
+    );
   }
 }

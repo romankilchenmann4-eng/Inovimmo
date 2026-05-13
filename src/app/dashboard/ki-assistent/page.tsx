@@ -1,13 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import SubNav from "@/components/ui/SubNav";
-
-const KI_NAV = [
-  { href: "/dashboard/ki-assistent", label: "KI-Assistent" },
-  { href: "/dashboard/ki-analyse",   label: "Mietpreisanalyse" },
-];
 
 type Message = { role: "user" | "assistant"; content: string; ts: Date };
 
@@ -30,7 +23,6 @@ export default function KIChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,39 +38,17 @@ export default function KIChatPage() {
     setMessages(m => [...m, userMsg]);
 
     try {
-      // Get user context from Supabase
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from("profiles").select("full_name,role").eq("id", user!.id).single();
-      const { data: tickets } = await supabase.from("tickets").select("titel,status,prioritaet,created_at").eq("erstellt_von", user!.id).order("created_at", { ascending: false }).limit(5);
-      const { data: wohnung } = await supabase.from("wohnungen").select("bezeichnung,nettomiete,nebenkosten_akonto,status").eq("mieter_id", user!.id).single();
-
-      const context = `
-Du bist der freundliche KI-Assistent von Inovimmo, einer Schweizer Immobilienverwaltungsplattform.
-Antworte auf Deutsch, kurz und präzise. Nutze Schweizer Schreibweise (CHF, nicht €).
-
-Nutzer: ${profile?.full_name} (${profile?.role})
-${wohnung ? `Wohnung: ${wohnung.bezeichnung}, Miete: CHF ${wohnung.nettomiete}/Mt., NK: CHF ${wohnung.nebenkosten_akonto}/Mt.` : ""}
-${tickets?.length ? `Offene Tickets: ${tickets.map(t => `${t.titel} (${t.status})`).join(", ")}` : "Keine offenen Tickets."}
-
-Wichtig: Du kannst keine Aktionen ausführen, nur informieren und beraten.
-Für Notfälle: Feuerwehr 118, Polizei 117, Sanitäter 144.
-`;
-
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          context,
-          messages: [
-            ...messages.filter(m => m.role !== "assistant" || messages.indexOf(m) > 0).map(m => ({
-              role: m.role, content: m.content
-            })),
-            { role: "user", content: msg }
-          ],
+          message: msg,
+          history: messages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "KI-Antwort fehlgeschlagen");
       const reply = data.reply ?? "Entschuldigung, ich konnte keine Antwort generieren.";
 
       setMessages(m => [...m, { role: "assistant", content: reply, ts: new Date() }]);
@@ -93,7 +63,6 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanitäter 144.
 
   return (
     <div className="max-w-2xl mx-auto h-[calc(100vh-120px)] flex flex-col">
-      <SubNav items={KI_NAV} />
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900">KI-Assistent</h2>
         <p className="text-sm text-gray-500">Powered by Claude · Beantwortet Fragen zu Ihrer Wohnung und Tickets</p>

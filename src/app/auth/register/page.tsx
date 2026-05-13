@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { UserRole } from "@/types";
 
@@ -13,7 +12,6 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   function update(key: string, value: string) {
     setForm(f => ({ ...f, [key]: value }));
@@ -23,19 +21,14 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.full_name,
-            firma: form.firma,
-            role: form.role,
-          },
-        },
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
-      if (error) throw error;
-      toast.success("Registrierung erfolgreich! Bitte E-Mail bestätigen.");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Registrierung fehlgeschlagen");
+      toast.success("Konto erstellt! Sie können sich jetzt einloggen.");
       router.push("/auth/login");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registrierung fehlgeschlagen";
@@ -54,10 +47,9 @@ export default function RegisterPage() {
   return (
     <>
       <h1 className="text-xl font-bold text-gray-900 mb-1">Konto erstellen</h1>
-      <p className="text-sm text-gray-500 mb-5">Kostenlos — kein Kreditkarte erforderlich.</p>
+      <p className="text-sm text-gray-500 mb-5">Kostenlos — keine Kreditkarte erforderlich.</p>
 
       <form onSubmit={handleRegister} className="space-y-4">
-        {/* Rolle */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Ich bin…
@@ -91,7 +83,7 @@ export default function RegisterPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Name</label>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Name *</label>
             <input
               type="text" required value={form.full_name}
               onChange={(e) => update("full_name", e.target.value)}
@@ -111,7 +103,7 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">E-Mail</label>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">E-Mail *</label>
           <input
             type="email" required value={form.email}
             onChange={(e) => update("email", e.target.value)}
@@ -121,7 +113,7 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Passwort</label>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Passwort *</label>
           <input
             type="password" required minLength={8} value={form.password}
             onChange={(e) => update("password", e.target.value)}

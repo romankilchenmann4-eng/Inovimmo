@@ -5,7 +5,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 // Inner form
 function CheckoutForm({ betrag, onSuccess }: { betrag: number; onSuccess: () => void }) {
@@ -93,6 +94,11 @@ export default function StripeCheckout({
   const [tab, setTab] = useState<"card" | "twint">("card");
 
   async function initPayment() {
+    if (!stripePromise) {
+      toast.error("Stripe ist nicht konfiguriert.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout", {

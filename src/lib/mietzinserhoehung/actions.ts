@@ -20,6 +20,10 @@ export async function erstelleErhoehung(formData: FormData) {
   const liegenschaft_id = formData.get('liegenschaft_id');
   const grund = formData.get('grund');
   const titel = formData.get('titel');
+  const inkrafttreten = formData.get('inkrafttreten');
+  const eigentuemer_name = formData.get('eigentuemer_name');
+  const eigentuemer_adresse = formData.get('eigentuemer_adresse');
+  const eigentuemer_ort = formData.get('eigentuemer_ort');
 
   if (typeof liegenschaft_id !== 'string' || !liegenschaft_id) {
     throw new Error('Liegenschaft fehlt');
@@ -39,6 +43,10 @@ export async function erstelleErhoehung(formData: FormData) {
       sonstige_abzuege: 0,
       wertvermehrend_prozent: 70,
       kapitalisierungssatz: 8,
+      inkrafttreten: typeof inkrafttreten === 'string' && inkrafttreten ? inkrafttreten : null,
+      eigentuemer_name: typeof eigentuemer_name === 'string' && eigentuemer_name ? eigentuemer_name : null,
+      eigentuemer_adresse: typeof eigentuemer_adresse === 'string' && eigentuemer_adresse ? eigentuemer_adresse : null,
+      eigentuemer_ort: typeof eigentuemer_ort === 'string' && eigentuemer_ort ? eigentuemer_ort : null,
     })
     .select('id')
     .single();
