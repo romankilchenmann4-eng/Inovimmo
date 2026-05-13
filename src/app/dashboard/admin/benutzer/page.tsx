@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { adminCreateUser } from "@/lib/admin/user-actions";
+import { adminCreateUser, approveUser, disableUser } from "@/lib/admin/user-actions";
 import ImpersonateButton from "./ImpersonateButton";
 
 const ROLE_BADGE: Record<string, string> = {
@@ -12,7 +12,8 @@ const ROLE_BADGE: Record<string, string> = {
 
 const inp = "w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]/20 focus:border-[hsl(214,76%,49%)] transition-all placeholder:text-gray-400";
 
-export default async function AdminBenutzerPage() {
+export default async function AdminBenutzerPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
+  const { error: flashError, success: flashSuccess } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -22,14 +23,18 @@ export default async function AdminBenutzerPage() {
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, firma, created_at")
+    .select("id, full_name, email, role, firma, created_at, status")
     .order("created_at", { ascending: false });
 
   const { data: liegenschaften } = await supabase
     .from("liegenschaften").select("id, name").order("name");
 
+  const pending = (profiles ?? []).filter(p => p.status === "pending");
+  const active  = (profiles ?? []).filter(p => p.status !== "pending");
+
   const counts = {
     total:         profiles?.length ?? 0,
+    pending:       pending.length,
     verwalter:     profiles?.filter(p => p.role === "verwalter").length ?? 0,
     mieter:        profiles?.filter(p => p.role === "mieter").length ?? 0,
     dienstleister: profiles?.filter(p => p.role === "dienstleister").length ?? 0,
@@ -42,13 +47,25 @@ export default async function AdminBenutzerPage() {
         <p className="text-sm text-muted-foreground mt-0.5">Alle registrierten Benutzer auf der Plattform</p>
       </div>
 
+      {flashError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+          ⚠️ {decodeURIComponent(flashError)}
+        </div>
+      )}
+      {flashSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
+          ✓ {decodeURIComponent(flashSuccess)}
+        </div>
+      )}
+
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         {[
-          { label: "Gesamt",        value: counts.total,         color: "text-foreground" },
-          { label: "Verwalter",     value: counts.verwalter,     color: "text-[hsl(214,76%,49%)]" },
-          { label: "Mieter",        value: counts.mieter,        color: "text-gray-600" },
-          { label: "Dienstleister", value: counts.dienstleister, color: "text-amber-600" },
+          { label: "Gesamt",           value: counts.total,         color: "text-foreground" },
+          { label: "Ausstehend",       value: counts.pending,       color: "text-amber-600" },
+          { label: "Verwalter",        value: counts.verwalter,     color: "text-[hsl(214,76%,49%)]" },
+          { label: "Mieter",           value: counts.mieter,        color: "text-gray-600" },
+          { label: "Dienstleister",    value: counts.dienstleister, color: "text-amber-600" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-border p-4 shadow-sm">
             <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
@@ -56,6 +73,42 @@ export default async function AdminBenutzerPage() {
           </div>
         ))}
       </div>
+
+      {/* Pending users */}
+      {pending.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-amber-200 flex items-center gap-2">
+            <span className="text-amber-600">⏳</span>
+            <h3 className="font-semibold text-amber-800">Ausstehende Freischaltungen ({pending.length})</h3>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pending.map(p => (
+              <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{p.full_name || "—"}</p>
+                  <p className="text-xs text-gray-500">{p.email} · {p.role}</p>
+                </div>
+                {isAdmin && p.id !== user!.id && (
+                  <div className="flex gap-2 flex-shrink-0">
+                    <form action={approveUser}>
+                      <input type="hidden" name="userId" value={p.id as string} />
+                      <button type="submit" className="text-xs px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-semibold">
+                        ✓ Freischalten
+                      </button>
+                    </form>
+                    <form action={disableUser}>
+                      <input type="hidden" name="userId" value={p.id as string} />
+                      <button type="submit" className="text-xs px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold">
+                        Ablehnen
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* User table */}
       <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
@@ -75,7 +128,7 @@ export default async function AdminBenutzerPage() {
               </tr>
             </thead>
             <tbody>
-              {(profiles ?? []).map(p => (
+              {active.map(p => (
                 <tr key={p.id} className="table-row">
                   <td className="table-cell">
                     <div className="flex items-center gap-2.5">
@@ -127,6 +180,10 @@ export default async function AdminBenutzerPage() {
                 <input name="email" type="email" required className={inp} placeholder="maria@beispiel.ch" />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Passwort *</label>
+                <input name="password" type="password" required minLength={8} className={inp} placeholder="Min. 8 Zeichen" />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Rolle</label>
                 <select name="role" defaultValue="mieter" className={inp}>
                   <option value="admin">Admin</option>
@@ -136,7 +193,7 @@ export default async function AdminBenutzerPage() {
                   <option value="mieter">Mieter</option>
                 </select>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Liegenschaften</label>
                 <select name="liegenschaft_ids" multiple className={`${inp} h-32`}>
                   {(liegenschaften ?? []).map((l: { id: string; name: string }) => (

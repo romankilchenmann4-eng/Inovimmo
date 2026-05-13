@@ -14,6 +14,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: adminProfile } = await supabase
     .from("profiles").select("*").eq("id", user.id).maybeSingle();
 
+  // Pending users can't access the dashboard
+  if (adminProfile?.status === "pending") {
+    redirect("/auth/pending");
+  }
+
   // Impersonation: admin can "view as" another user
   const jar = await cookies();
   const impersonateId = jar.get("inovimmo_impersonate")?.value;
