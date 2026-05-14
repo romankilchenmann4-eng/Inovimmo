@@ -76,7 +76,7 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
     { role: "user", content: message.trim() },
   ];
 
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+  const response = await fetch(`${baseUrl}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -85,7 +85,6 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
     body: JSON.stringify({
       model: "llama3.1:8b",
       messages,
-      max_tokens: 500,
       stream: false,
     }),
   });
@@ -99,7 +98,8 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
     );
   }
 
+  // Ollama API returns { message: { role, content }, done: true }
   return NextResponse.json({
-    reply: data.choices?.[0]?.message?.content ?? "Ich konnte keine Antwort generieren.",
+    reply: data.message?.content ?? "Ich konnte keine Antwort generieren.",
   });
 }

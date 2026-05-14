@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const systemMessage = { role: "system", content: context || "Du bist ein hilfreicher Assistent." };
   const allMessages = [systemMessage, ...messages];
 
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+  const response = await fetch(`${baseUrl}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama3.1:8b",
       messages: allMessages,
-      max_tokens: 500,
       stream: false,
     }),
   });
@@ -40,6 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await response.json();
-  const reply = data.choices?.[0]?.message?.content ?? "Keine Antwort erhalten.";
+  // Ollama API returns { message: { role, content }, done: true }
+  const reply = data.message?.content ?? "Keine Antwort erhalten.";
   return NextResponse.json({ reply });
 }
