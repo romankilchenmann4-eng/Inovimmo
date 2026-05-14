@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -7,6 +8,17 @@ type ChatMessage = {
 };
 
 export const dynamic = "force-dynamic";
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) return null;
+
+  return createSupabaseClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OLLAMA_API_KEY;
@@ -32,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
   }
 
-  const [{ data: profile }, { data: tickets }, { data: mietverhaeltnisse }] = await Promise.all([
+  const [{ data: profile }, { data: tickets }] = await Promise.all([
     supabase.from("profiles").select("full_name,role").eq("id", user.id).single(),
     supabase
       .from("tickets")
@@ -40,12 +52,18 @@ export async function POST(req: NextRequest) {
       .eq("erstellt_von", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
-    supabase
-      .from("mietverhaeltnisse")
-      .select("wohnung:wohnungen(bezeichnung,nettomiete,nebenkosten_akonto,status)")
-      .eq("mieter_id", user.id)
-      .limit(1),
   ]);
+
+  const admin = createAdminClient();
+  const { data: mietverhaeltnisse } = admin && user.email
+    ? await admin
+      .from("mietverhaeltnisse")
+      .select("mieter:mieter_id!inner(email), wohnung:wohnungen(bezeichnung,nettomiete,nebenkosten_akonto,status)")
+      .ilike("mieter.email", user.email)
+      .is("mietende", null)
+      .order("mietbeginn", { ascending: false })
+      .limit(1)
+    : { data: null };
 
   const rawWohnung = Array.isArray(mietverhaeltnisse) ? mietverhaeltnisse[0]?.wohnung : null;
   const wohnung = (Array.isArray(rawWohnung) ? rawWohnung[0] : rawWohnung) as {

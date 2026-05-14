@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Supabase Admin-Konfiguration fehlt");
+  }
+
+  return createSupabaseClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 // POST — Verwalter erstellt Einladungstoken für neuen Mieter
 export async function POST(req: NextRequest) {
@@ -109,4 +123,108 @@ export async function GET(req: NextRequest) {
   if (new Date(data.expires_at) < new Date()) return NextResponse.json({ valid: false, error: "Einladung abgelaufen" }, { status: 410 });
 
   return NextResponse.json({ valid: true, data });
+}
+
+// PATCH — Mieter schliesst Einladung ab und wird mit Stammdaten/Mietverhältnis verknüpft
+export async function PATCH(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { token, vorname, nachname, phone, geburtsdatum, nationalitaet } = await req.json();
+  if (!token) return NextResponse.json({ error: "Token fehlt" }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: tokenData, error: tokenError } = await admin
+    .from("onboarding_tokens")
+    .select("token, wohnung_id, verwalter_id, mieter_email, mieter_vorname, mieter_nachname, mietbeginn, expires_at, used_at")
+    .eq("token", token)
+    .single();
+
+  if (tokenError || !tokenData) {
+    return NextResponse.json({ error: "Ungültiger Token" }, { status: 404 });
+  }
+  if (tokenData.used_at) {
+    return NextResponse.json({ error: "Einladung bereits verwendet" }, { status: 410 });
+  }
+  if (new Date(tokenData.expires_at) < new Date()) {
+    return NextResponse.json({ error: "Einladung abgelaufen" }, { status: 410 });
+  }
+  if (tokenData.mieter_email.toLowerCase() !== user.email.toLowerCase()) {
+    return NextResponse.json({ error: "Einladung gehört zu einer anderen E-Mail-Adresse" }, { status: 403 });
+  }
+
+  const firstName = String(vorname || tokenData.mieter_vorname || "").trim();
+  const lastName = String(nachname || tokenData.mieter_nachname || "").trim();
+  if (!firstName || !lastName) {
+    return NextResponse.json({ error: "Vorname und Nachname sind erforderlich" }, { status: 400 });
+  }
+
+  await admin.from("profiles").update({
+    full_name: `${firstName} ${lastName}`.trim(),
+    phone: phone || null,
+    role: "mieter",
+  }).eq("id", user.id);
+
+  const existing = await admin
+    .from("mieter")
+    .select("id")
+    .eq("erstellt_von", tokenData.verwalter_id)
+    .ilike("email", user.email)
+    .maybeSingle();
+
+  let mieterId = existing.data?.id as string | undefined;
+  if (mieterId) {
+    await admin.from("mieter").update({
+      vorname: firstName,
+      nachname: lastName,
+      telefon_mobil: phone || null,
+      geburtsdatum: geburtsdatum || null,
+    }).eq("id", mieterId);
+  } else {
+    const { data: newMieter, error: mieterError } = await admin
+      .from("mieter")
+      .insert({
+        erstellt_von: tokenData.verwalter_id,
+        vorname: firstName,
+        nachname: lastName,
+        email: user.email,
+        telefon_mobil: phone || null,
+        geburtsdatum: geburtsdatum || null,
+      })
+      .select("id")
+      .single();
+
+    if (mieterError || !newMieter) {
+      return NextResponse.json({ error: mieterError?.message ?? "Mieter konnte nicht erstellt werden" }, { status: 500 });
+    }
+    mieterId = newMieter.id;
+  }
+
+  const { data: existingLease } = await admin
+    .from("mietverhaeltnisse")
+    .select("id")
+    .eq("wohnung_id", tokenData.wohnung_id)
+    .eq("mieter_id", mieterId)
+    .is("mietende", null)
+    .maybeSingle();
+
+  if (!existingLease) {
+    const { error: leaseError } = await admin.from("mietverhaeltnisse").insert({
+      wohnung_id: tokenData.wohnung_id,
+      mieter_id: mieterId,
+      mietbeginn: tokenData.mietbeginn ?? new Date().toISOString().slice(0, 10),
+      ist_vertragspartner: true,
+      ist_hauptperson: true,
+    });
+
+    if (leaseError) {
+      return NextResponse.json({ error: leaseError.message }, { status: 500 });
+    }
+  }
+
+  await admin.from("wohnungen").update({ status: "vermietet" }).eq("id", tokenData.wohnung_id);
+  await admin.from("onboarding_tokens").update({ used_at: new Date().toISOString() }).eq("token", token);
+
+  return NextResponse.json({ ok: true });
 }

@@ -104,14 +104,22 @@ export default function OnboardingPage({ params }: { params: Promise<{ token: st
           role: "mieter",
         }).eq("id", user.id);
 
-        // 4. Mark token as used
-        await fetch(`/api/onboarding?token=${token}`, { method: "DELETE" }).catch(() => {});
+        const linkRes = await fetch("/api/onboarding", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            vorname: form.vorname,
+            nachname: form.nachname,
+            phone: form.phone,
+            geburtsdatum: form.geburtsdatum,
+            nationalitaet: form.nationalitaet,
+          }),
+        });
 
-        // 5. Link to wohnung if possible
-        if (tokenData?.wohnung?.id) {
-          await supabase.from("wohnungen")
-            .update({ mieter_id: user.id, mietbeginn: tokenData.mietbeginn ?? null, status: "vermietet" })
-            .eq("id", tokenData.wohnung.id);
+        if (!linkRes.ok) {
+          const json = await linkRes.json().catch(() => ({}));
+          throw new Error(json.error ?? "Mieter konnte nicht verknüpft werden");
         }
       }
 

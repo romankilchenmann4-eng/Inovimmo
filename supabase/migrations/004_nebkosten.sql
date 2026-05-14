@@ -44,7 +44,10 @@ create policy "nk_pos_owner" on public.nk_abrechnung_positionen
 create policy "nk_abrechnungen_mieter_read" on public.nebenkostenabrechnungen
   for select using (
     exists (
-      select 1 from public.wohnungen w
-      where w.id = wohnung_id and w.mieter_id = auth.uid()
+      select 1 from public.mietverhaeltnisse mv
+      join public.mieter m on m.id = mv.mieter_id
+      where mv.wohnung_id = wohnung_id
+        and mv.mietende is null
+        and lower(m.email) = lower(auth.jwt() ->> 'email')
     )
   );

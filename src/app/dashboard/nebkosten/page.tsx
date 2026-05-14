@@ -13,7 +13,7 @@ const FINANZEN_NAV = [
 ];
 
 type Liegenschaft = { id: string; name: string; ort: string };
-type Wohnung = { id: string; bezeichnung: string; flaeche_m2: number; nebenkosten_akonto: number; mieter_id?: string };
+type Wohnung = { id: string; bezeichnung: string; flaeche_m2: number; nebenkosten_akonto: number };
 type NKPosition = { id?: string; bezeichnung: string; kategorie: string; betrag_total: number; verteilschluessel: string };
 type Abrechnung = {
   id: string;
@@ -85,7 +85,7 @@ export default function NebenkostenPage() {
   async function loadWohnungen(liegId: string) {
     const { data } = await supabase
       .from("wohnungen")
-      .select("id,bezeichnung,flaeche_m2,nebenkosten_akonto,mieter_id")
+      .select("id,bezeichnung,flaeche_m2,nebenkosten_akonto")
       .eq("liegenschaft_id", liegId)
       .order("bezeichnung");
     setWohnungen(data ?? []);

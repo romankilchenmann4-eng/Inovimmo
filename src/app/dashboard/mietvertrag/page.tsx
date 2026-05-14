@@ -168,7 +168,7 @@ export default function MietvertragPage() {
       let wohnungenQuery = supabase.from("wohnungen").select(`
         id, bezeichnung, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, bruttomiete, status,
         liegenschaft:liegenschaften(id, name, strasse, hausnummer, plz, ort),
-        mietverhaeltnisse(id, mietbeginn, mietende, kaution_chf, mieter:mieter(vorname, nachname))
+        mietverhaeltnisse(id, mietbeginn, mietende, kaution_chf, mieter:mieter_id(vorname, nachname))
       `).order("bezeichnung");
       if (prof?.role !== "admin") wohnungenQuery = wohnungenQuery.eq("verwalter_id", user.id);
       const { data: wohn } = await wohnungenQuery;

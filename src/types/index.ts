@@ -42,7 +42,6 @@ export type Wohnung = {
   nettomiete: number;
   nebenkosten_akonto: number;
   status: "vermietet" | "leer" | "kuendigung";
-  mieter_id?: string;
   mietbeginn?: string;
   mietende?: string;
   created_at: string;

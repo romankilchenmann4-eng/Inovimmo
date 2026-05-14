@@ -1,23 +1,66 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) return null;
+
+  return createSupabaseClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 export default async function MieterPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("full_name,email").eq("id",user!.id).single();
 
-  const { data: wohnung } = await supabase
-    .from("wohnungen")
-    .select("*, liegenschaft:liegenschaften(name,strasse,hausnummer,plz,ort,verwalter_id), verwalter:liegenschaften(profiles!liegenschaften_verwalter_id_fkey(full_name,email,phone))")
-    .eq("mieter_id", user!.id)
-    .single();
+  const admin = createAdminClient();
+  const { data: mietverhaeltnis } = admin && (profile?.email || user?.email)
+    ? await admin
+      .from("mietverhaeltnisse")
+      .select(`
+        mietbeginn,
+        mietende,
+        mieter:mieter_id!inner(email),
+        wohnung:wohnungen(
+          *,
+          liegenschaft:liegenschaften(
+            name,
+            strasse,
+            hausnummer,
+            plz,
+            ort,
+            verwalter_id,
+            verwalter:profiles!liegenschaften_verwalter_id_fkey(full_name,email,phone)
+          )
+        )
+      `)
+      .ilike("mieter.email", profile?.email ?? user!.email!)
+      .is("mietende", null)
+      .order("mietbeginn", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    : { data: null };
+
+  const rawWohnung = mietverhaeltnis?.wohnung;
+  const wohnung = (Array.isArray(rawWohnung) ? rawWohnung[0] : rawWohnung) as
+    | {
+        bezeichnung: string;
+        nettomiete: number;
+        nebenkosten_akonto: number;
+        liegenschaft?: { strasse: string; hausnummer: string } | null;
+      }
+    | null;
 
   const { data: meineTickets } = await supabase
     .from("tickets")
     .select("id,titel,status,prioritaet,created_at,updated_at")
     .eq("erstellt_von", user!.id)
     .order("created_at", { ascending: false });
-
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id",user!.id).single();
 
   const STATUS: Record<string,{label:string,cls:string}> = {
     neu:                  { label:"Neu",           cls:"badge-red" },
@@ -42,7 +85,7 @@ export default async function MieterPage() {
             <div className="flex gap-6">
               <div><p className="text-white/50 text-xs">Nettomiete</p><p className="text-xl font-bold">CHF {Number(wohnung.nettomiete).toLocaleString("de-CH")}</p></div>
               <div><p className="text-white/50 text-xs">NK à-conto</p><p className="text-xl font-bold">CHF {Number(wohnung.nebenkosten_akonto).toLocaleString("de-CH")}</p></div>
-              <div><p className="text-white/50 text-xs">Mietbeginn</p><p className="text-xl font-bold">{wohnung.mietbeginn ? new Date(wohnung.mietbeginn).toLocaleDateString("de-CH",{month:"short",year:"numeric"}) : "—"}</p></div>
+              <div><p className="text-white/50 text-xs">Mietbeginn</p><p className="text-xl font-bold">{mietverhaeltnis?.mietbeginn ? new Date(mietverhaeltnis.mietbeginn).toLocaleDateString("de-CH",{month:"short",year:"numeric"}) : "—"}</p></div>
             </div>
           </>
         ) : (
