@@ -9,7 +9,7 @@ export default async function HistoriePage({
   const supabase = await createClient();
   const { id: objektId, wohnungId } = await params;
 
-  const [{ data: mietverhaeltnisse }, { data: auszuege }, { data: uebergaben }, { data: wohnung }] =
+  const [{ data: allMietverhaeltnisse }, { data: auszuege }, { data: uebergaben }, { data: wohnung }] =
     await Promise.all([
       supabase
         .from("mietverhaeltnisse")
@@ -37,6 +37,15 @@ export default async function HistoriePage({
     ? `${wohnung.whg_nr} · ${wohnung.bezeichnung}`
     : wohnung?.bezeichnung || "Wohnung";
 
+  // Separate current (active) from historical rental contracts
+  const now = new Date();
+  const currentMietverhaeltnisse = allMietverhaeltnisse?.filter(
+    (mv: any) => !mv.mietende || new Date(mv.mietende) > now
+  ) || [];
+  const historicalMietverhaeltnisse = allMietverhaeltnisse?.filter(
+    (mv: any) => mv.mietende && new Date(mv.mietende) <= now
+  ) || [];
+
   return (
     <div className="max-w-3xl mx-auto space-y-5 p-6">
       <Link
@@ -51,16 +60,16 @@ export default async function HistoriePage({
         <p className="text-sm text-gray-400 mt-1">Frühere Mieter, Auszüge und Protokolle.</p>
       </div>
 
-      {/* Mietverhältnisse */}
-      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Mietverhältnisse</h2>
+      {/* Aktuelle Mietverhältnisse */}
+      <div className="bg-white rounded-xl border border-green-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-green-100 bg-green-50/50">
+          <h2 className="text-sm font-semibold text-green-700 uppercase tracking-wide">Aktuelle Mietverhältnisse</h2>
         </div>
-        {!mietverhaeltnisse?.length ? (
-          <p className="px-5 py-8 text-sm text-gray-400 text-center">Keine Mietverhältnisse erfasst.</p>
+        {!currentMietverhaeltnisse.length ? (
+          <p className="px-5 py-8 text-sm text-gray-400 text-center">Keine aktuellen Mietverhältnisse.</p>
         ) : (
           <div className="divide-y divide-gray-100">
-            {mietverhaeltnisse.map((mv: any) => (
+            {currentMietverhaeltnisse.map((mv: any) => (
               <div key={mv.id} className="px-5 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
@@ -77,12 +86,46 @@ export default async function HistoriePage({
                     {" – "}
                     {mv.mietende ? new Date(mv.mietende).toLocaleDateString("de-CH") : "laufend"}
                   </p>
+                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                    aktiv
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Frühere Mietverhältnisse */}
+      {historicalMietverhaeltnisse.length > 0 && (
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Frühere Mietverhältnisse</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {historicalMietverhaeltnisse.map((mv: any) => (
+              <div key={mv.id} className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {[mv.mieter?.vorname, mv.mieter?.nachname].filter(Boolean).join(" ") || "—"}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {mv.mieter?.email || ""}
+                    {mv.ist_hauptperson ? " · Hauptmieter" : ""}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    {mv.mietbeginn ? new Date(mv.mietbeginn).toLocaleDateString("de-CH") : "—"}
+                    {" – "}
+                    {mv.mietende ? new Date(mv.mietende).toLocaleDateString("de-CH") : "unbekannt"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Auszüge */}
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
