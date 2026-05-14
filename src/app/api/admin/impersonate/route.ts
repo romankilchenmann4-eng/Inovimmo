@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
 
   let actionLink: string | undefined;
   try {
-    const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin;
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://app.inovimmo.ch").replace(/\/$/, "");
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: target.email,
       options: {
-        redirectTo: `${origin}/dashboard`,
+        redirectTo: `${baseUrl}/auth/callback?next=/dashboard`,
       },
     });
 
