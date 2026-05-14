@@ -7,11 +7,13 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
+    console.error("Stripe Webhook: STRIPE_WEBHOOK_SECRET fehlt");
     return NextResponse.json({ error: "STRIPE_WEBHOOK_SECRET fehlt" }, { status: 503 });
   }
 
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
+    console.warn("Stripe Webhook: Signatur fehlt -", req.headers);
     return NextResponse.json({ error: "Stripe-Signatur fehlt" }, { status: 400 });
   }
 

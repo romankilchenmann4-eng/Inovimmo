@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ sent: false, error: "RESEND_API_KEY fehlt." }, { status: 503 });
   }
 
-  let body: { type?: EmailType; payload?: unknown };
+  let body: { type?: EmailType; payload?: unknown; data?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await handlers[body.type](body.payload as never);
+    const result = await handlers[body.type]((body.payload ?? body.data) as never);
     return NextResponse.json({ sent: true, result });
   } catch (err: unknown) {
     return NextResponse.json(

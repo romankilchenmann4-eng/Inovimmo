@@ -1,21 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase Admin-Konfiguration fehlt");
-  }
-
-  return createSupabaseClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 // POST — Verwalter erstellt Einladungstoken für neuen Mieter
 export async function POST(req: NextRequest) {
@@ -28,11 +15,66 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nur Verwalter können Einladungen erstellen" }, { status: 403 });
   }
 
-  const body = await req.json();
+  let body: {
+    wohnung_id?: string;
+    mieter_email?: string;
+    mieter_vorname?: string;
+    mieter_nachname?: string;
+    mietbeginn?: string;
+    nettomiete?: number;
+  };
+
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
+  }
+
   const { wohnung_id, mieter_email, mieter_vorname, mieter_nachname, mietbeginn, nettomiete } = body;
 
+  // Pflichtfelder
   if (!wohnung_id || !mieter_email) {
     return NextResponse.json({ error: "wohnung_id und mieter_email sind erforderlich" }, { status: 400 });
+  }
+
+  // UUID-Format prüfen
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(wohnung_id)) {
+    return NextResponse.json({ error: "Ungültige wohnung_id" }, { status: 400 });
+  }
+
+  // Email-Validierung
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailTrimmed = String(mieter_email).trim();
+  if (!emailRegex.test(emailTrimmed)) {
+    return NextResponse.json({ error: "Ungültige E-Mail-Adresse" }, { status: 400 });
+  }
+
+  // Namen validieren (Länge + XSS-Schutz)
+  const vorname = mieter_vorname ? String(mieter_vorname).trim() : null;
+  const nachname = mieter_nachname ? String(mieter_nachname).trim() : null;
+  const dangerousPattern = /[<>]/;
+
+  if (vorname && (vorname.length < 1 || vorname.length > 50 || dangerousPattern.test(vorname))) {
+    return NextResponse.json({ error: "Ungültiger Vorname" }, { status: 400 });
+  }
+  if (nachname && (nachname.length < 1 || nachname.length > 50 || dangerousPattern.test(nachname))) {
+    return NextResponse.json({ error: "Ungültiger Nachname" }, { status: 400 });
+  }
+
+  // Mietbeginn validieren (ISO-Format)
+  if (mietbeginn) {
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(mietbeginn) || isNaN(Date.parse(mietbeginn))) {
+      return NextResponse.json({ error: "Ungültiges Mietbeginn-Format" }, { status: 400 });
+    }
+  }
+
+  // Nettomiete validieren
+  if (nettomiete !== null && nettomiete !== undefined) {
+    if (typeof nettomiete !== "number" || nettomiete < 0 || nettomiete > 100000) {
+      return NextResponse.json({ error: "Ungültige Nettomiete" }, { status: 400 });
+    }
   }
 
   // Verify the wohnung belongs to a liegenschaft managed by this verwalter
@@ -58,9 +100,9 @@ export async function POST(req: NextRequest) {
     .insert({
       wohnung_id,
       verwalter_id: user.id,
-      mieter_email,
-      mieter_vorname: mieter_vorname ?? null,
-      mieter_nachname: mieter_nachname ?? null,
+      mieter_email: emailTrimmed,
+      mieter_vorname: vorname,
+      mieter_nachname: nachname,
       mietbeginn: mietbeginn ?? null,
       nettomiete: nettomiete ?? null,
     })

@@ -36,9 +36,7 @@ export async function POST(req: NextRequest) {
       id, mietende, mietbeginn, ablauf_reminder_sent,
       wohnung:wohnungen(
         id, bezeichnung,
-        liegenschaft:liegenschaften(name, verwalter_id,
-          verwalter:profiles(full_name, email:profiles(id))
-        )
+        liegenschaft:liegenschaften(name, verwalter_id)
       ),
       mieter:mieter(vorname, nachname, email)
     `)

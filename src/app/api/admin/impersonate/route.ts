@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { createAdminClient, requireAdmin } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 const COOKIE = "inovimmo_impersonate";
-
-function getSupabaseAdmin() {
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
-  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
-
-  if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL fehlt");
-  if (!serviceRoleKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY fehlt");
-
-  return createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
+const IMPERSONATION_MAX_AGE = 60 * 60; // 1 hour
 
 // POST — Admin starts impersonation
 export async function POST(req: NextRequest) {
@@ -25,27 +14,58 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: adminProfile } = await supabase
-    .from("profiles").select("role").eq("id", user.id).single();
-  if (adminProfile?.role !== "admin") {
+  // Admin-Check mit zentraler Funktion
+  try {
+    await requireAdmin(supabase, user.id);
+  } catch {
     return NextResponse.json({ error: "Nur Admins können Benutzer wechseln" }, { status: 403 });
   }
 
-  const { userId } = await req.json();
-  if (!userId || userId === user.id) {
+  let body: { userId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
+  }
+
+  const { userId } = body;
+
+  // Validierung der Ziel-User-ID
+  if (!userId || typeof userId !== "string") {
+    return NextResponse.json({ error: "Benutzer-ID fehlt" }, { status: 400 });
+  }
+
+  // Nicht sich selbst impersonieren
+  if (userId === user.id) {
+    return NextResponse.json({ error: "Kann nicht sich selbst impersonieren" }, { status: 400 });
+  }
+
+  // UUID-Format prüfen
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
     return NextResponse.json({ error: "Ungültige Benutzer-ID" }, { status: 400 });
   }
 
-  // Verify target user exists
-  const { data: target } = await supabase
-    .from("profiles").select("id, email, full_name, role").eq("id", userId).single();
-  if (!target) return NextResponse.json({ error: "Benutzer nicht gefunden" }, { status: 404 });
-  if (!target.email) return NextResponse.json({ error: "Zielbenutzer hat keine E-Mail" }, { status: 400 });
+  // Zielbenutzer existiert?
+  const { data: target, error: targetError } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role")
+    .eq("id", userId)
+    .single();
 
+  if (targetError || !target) {
+    return NextResponse.json({ error: "Benutzer nicht gefunden" }, { status: 404 });
+  }
+
+  if (!target.email) {
+    return NextResponse.json({ error: "Zielbenutzer hat keine E-Mail" }, { status: 400 });
+  }
+
+  // Magic Link generieren
   let actionLink: string | undefined;
   try {
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://app.inovimmo.ch").replace(/\/$/, "");
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: target.email,
@@ -55,26 +75,32 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Impersonation Link Error:", error.message);
+      return NextResponse.json({ error: "Login-Link konnte nicht generiert werden" }, { status: 500 });
     }
     actionLink = data.properties?.action_link;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Impersonation konnte nicht gestartet werden";
+    console.error("Impersonation Exception:", err);
+    const message = err instanceof Error ? err.message : "Impersonation fehlgeschlagen";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
   if (!actionLink) {
-    return NextResponse.json({ error: "Supabase hat keinen Login-Link erzeugt" }, { status: 500 });
+    return NextResponse.json({ error: "Login-Link nicht verfügbar" }, { status: 500 });
   }
 
+  // Secure Cookie setzen
   const jar = await cookies();
   jar.set(COOKIE, userId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60, // 1 hour
+    maxAge: IMPERSONATION_MAX_AGE,
     path: "/",
   });
+
+  // Logging für Audit-Trail
+  console.log(`Impersonation: Admin ${user.id} wechselt zu ${userId} (${target.email})`);
 
   return NextResponse.json({ ok: true, impersonating: target, actionLink });
 }

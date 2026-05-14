@@ -1,20 +1,12 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AutomationJobName = "monatssoll" | "mahnungen" | "vertrag-reminder";
 export type AutomationTrigger = "cron" | "manual" | "status";
 
-export function getAutomationAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase Admin-Konfiguration fehlt");
-  }
-
-  return createSupabaseClient(url, key, {
-    auth: { persistSession: false },
-  });
+export function getAutomationAdminClient(): SupabaseClient {
+  return createAdminClient();
 }
 
 export function isCronAuthorized(req: NextRequest) {

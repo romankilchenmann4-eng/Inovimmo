@@ -54,6 +54,7 @@ create table if not exists public.mahnungen (
   versendet_at      timestamptz,
   bezahlt_at        timestamptz,
   status            text not null default 'offen' check (status in ('offen','bezahlt','storniert')),
+  auto_erstellt     boolean not null default false,
   created_at        timestamptz not null default now()
 );
 

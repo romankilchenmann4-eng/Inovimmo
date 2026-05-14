@@ -1,4 +1,4 @@
-export type UserRole = "verwalter" | "mieter" | "dienstleister" | "admin";
+export type UserRole = "verwalter" | "mieter" | "dienstleister" | "admin" | "eigentümer";
 
 export type Profile = {
   id: string;
