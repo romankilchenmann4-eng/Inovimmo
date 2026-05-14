@@ -83,7 +83,7 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "llama3.1:8b",
+      model: "gemma3:4b",
       messages,
       stream: false,
     }),
