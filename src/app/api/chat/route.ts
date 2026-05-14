@@ -11,23 +11,27 @@ export async function POST(req: NextRequest) {
 
   const { messages, context } = await req.json();
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OLLAMA_API_KEY;
+  const baseUrl = process.env.OLLAMA_BASE_URL ?? "https://ollama.cloud";
+
   if (!apiKey) {
-    return NextResponse.json({ error: "KI nicht konfiguriert" }, { status: 500 });
+    return NextResponse.json({ error: "KI nicht konfiguriert" }, { status: 503 });
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const systemMessage = { role: "system", content: context || "Du bist ein hilfreicher Assistent." };
+  const allMessages = [systemMessage, ...messages];
+
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "llama3.1:8b",
+      messages: allMessages,
       max_tokens: 500,
-      system: context,
-      messages,
+      stream: false,
     }),
   });
 
@@ -36,6 +40,6 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await response.json();
-  const reply = data.content?.[0]?.text ?? "Keine Antwort erhalten.";
+  const reply = data.choices?.[0]?.message?.content ?? "Keine Antwort erhalten.";
   return NextResponse.json({ reply });
 }

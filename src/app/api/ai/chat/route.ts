@@ -9,7 +9,9 @@ type ChatMessage = {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OLLAMA_API_KEY;
+  const baseUrl = process.env.OLLAMA_BASE_URL ?? "https://ollama.cloud";
+
   if (!apiKey) {
     return NextResponse.json({ error: "KI ist nicht konfiguriert." }, { status: 503 });
   }
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     .slice(-8)
     .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
 
-  const system = `
+  const systemPrompt = `
 Du bist der freundliche KI-Assistent von Inovimmo, einer Schweizer Immobilienverwaltungsplattform.
 Antworte auf Deutsch, kurz und präzise. Nutze Schweizer Schreibweise.
 
@@ -68,18 +70,23 @@ Wichtig: Du kannst keine Aktionen ausführen, nur informieren und beraten.
 Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
 `;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...safeHistory,
+    { role: "user", content: message.trim() },
+  ];
+
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514",
+      model: "llama3.1:8b",
+      messages,
       max_tokens: 500,
-      system,
-      messages: [...safeHistory, { role: "user", content: message.trim() }],
+      stream: false,
     }),
   });
 
@@ -93,6 +100,6 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
   }
 
   return NextResponse.json({
-    reply: data.content?.[0]?.text ?? "Ich konnte keine Antwort generieren.",
+    reply: data.choices?.[0]?.message?.content ?? "Ich konnte keine Antwort generieren.",
   });
 }
