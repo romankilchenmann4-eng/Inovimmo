@@ -40,12 +40,11 @@ export async function POST(req: NextRequest) {
   const { data: wohnungen, error: wErr } = await supabase
     .from("wohnungen")
     .select(`
-      id, bezeichnung, nettomiete, nebenkosten_akonto, liegenschaft_id, mieter_id,
+      id, bezeichnung, nettomiete, nebenkosten_akonto, liegenschaft_id,
       liegenschaft:liegenschaften(verwalter_id),
       mietverhaeltnisse(mieter_id)
     `)
-    .eq("status", "vermietet")
-    .not("mieter_id", "is", null);
+    .eq("status", "vermietet");
 
   if (wErr) {
     await finishAutomationRun(supabase, run, "failed", {}, wErr.message);
@@ -91,9 +90,9 @@ export async function POST(req: NextRequest) {
     const liegenschaft = Array.isArray(w.liegenschaft) ? w.liegenschaft[0] : w.liegenschaft;
     const verwalterId = liegenschaft?.verwalter_id;
     const aktivesMietverhaeltnis = Array.isArray(w.mietverhaeltnisse) ? w.mietverhaeltnisse[0] : null;
-    const mieterId = w.mieter_id ?? aktivesMietverhaeltnis?.mieter_id ?? null;
+    const mieterId = aktivesMietverhaeltnis?.mieter_id ?? null;
 
-    if (!verwalterId) continue;
+    if (!verwalterId || !mieterId) continue;
 
     // Miete Soll
     if (Number(w.nettomiete) > 0) {
