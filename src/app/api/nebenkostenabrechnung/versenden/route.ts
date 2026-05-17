@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
         .eq("wohnung_id", abrechnung.wohnung_id)
         .is("mietende", null);
 
-      const hauptMieter = mietverhaeltnisse?.find((mv: any) => mv.ist_hauptperson)?.mieter ?? mietverhaeltnisse?.[0]?.mieter;
+      const hauptMieterData = mietverhaeltnisse?.find((mv: any) => mv.ist_hauptperson) ?? mietverhaeltnisse?.[0];
+      const hauptMieter = hauptMieterData ? (Array.isArray(hauptMieterData.mieter) ? hauptMieterData.mieter[0] : hauptMieterData.mieter) : null;
 
       // Load wohnung and liegenschaft
       const { data: wohnung } = await supabase

@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
     .eq("wohnung_id", abrechnung.wohnung_id)
     .is("mietende", null);
 
-  const hauptMieter = mietverhaeltnisse?.find((mv: any) => mv.ist_hauptperson)?.mieter ?? mietverhaeltnisse?.[0]?.mieter;
+  const hauptMieterData = mietverhaeltnisse?.find((mv: any) => mv.ist_hauptperson) ?? mietverhaeltnisse?.[0];
+  const hauptMieter = hauptMieterData ? (Array.isArray(hauptMieterData.mieter) ? hauptMieterData.mieter[0] : hauptMieterData.mieter) : null;
   const mieterName = hauptMieter ? `${hauptMieter.vorname} ${hauptMieter.nachname}` : "Mieter";
   const mieterAdressLines = hauptMieter
     ? [hauptMieter.strasse, `${hauptMieter.plz} ${hauptMieter.ort}`]
