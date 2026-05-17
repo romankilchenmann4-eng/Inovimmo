@@ -164,7 +164,7 @@ export async function erstelleAbrechnungen(
   zahlungsfrist.setDate(zahlungsfrist.getDate() + 30);
 
   const abrechnungenData = ergebnisse.map((erg) => ({
-    wohnung_id: erg.wohung_id ?? erg.wohnung_id,
+    wohnung_id: erg.wohnung_id,
     liegenschaft_id,
     jahr,
     periode_von,
