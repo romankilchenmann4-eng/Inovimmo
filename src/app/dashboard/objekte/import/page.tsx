@@ -203,9 +203,6 @@ export default function MieterspiegelImportPage() {
 
           // Create new mieter if not found
           if (!mieterId) {
-            const mietbeginnDate = parseSwissDate(row.mietbeginn);
-            const personenzahl = parseInt(row.personenzahl) || 1;
-
             const { data: newMieter, error: mErr } = await supabase
               .from("mieter")
               .insert({
@@ -221,11 +218,11 @@ export default function MieterspiegelImportPage() {
               .single();
 
             if (mErr) throw mErr;
-            mieterId = newMieter.id;
+            mieterId = newMieter!.id;
             importedMieter++;
 
             if (mieterEmail) {
-              mieterCache.set(mieterEmail, mieterId);
+              mieterCache.set(mieterEmail, mieterId!);
             }
           }
 
