@@ -190,7 +190,7 @@ export function buildPlatzhalter(data: {
   return {
     mieter_name: data.mieter_namen,
     mieter_adresse: data.mieter_adresse,
-    wohnung_bezeichnung: data.wohnung_bezeichnung ?? data.wohung_bezeichnung,
+    wohnung_bezeichnung: data.wohnung_bezeichnung,
     liegenschaft_name: data.liegenschaft_name,
     liegenschaft_adresse,
     periode,
