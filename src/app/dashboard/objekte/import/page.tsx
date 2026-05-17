@@ -195,7 +195,7 @@ export default function MieterspiegelImportPage() {
 
               if (existingMieter) {
                 mieterId = existingMieter.id;
-                mieterCache.set(mieterEmail, mieterId);
+                mieterCache.set(mieterEmail, mieterId!);
                 skippedMieter++;
               }
             }
