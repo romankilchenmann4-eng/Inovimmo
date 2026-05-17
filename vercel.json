@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/vertrag-reminder",
       "schedule": "30 6 1 * *"
+    },
+    {
+      "path": "/api/cron/nk-abrechnung",
+      "schedule": "0 6 1 2 *"
     }
   ]
 }
