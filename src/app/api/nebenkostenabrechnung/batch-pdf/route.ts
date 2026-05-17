@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   NAVY, DARK, GRAY, WHITE,
   PAGE_W, PAGE_H, ML, MR, BW,
@@ -187,8 +187,4 @@ export async function POST(req: NextRequest) {
       "Content-Disposition": `inline; filename="NK_Abrechnungen_${jahr}_${liegenschaft?.name?.replace(/\s/g, "_") ?? "Sammel"}.pdf"`,
     },
   });
-}
-
-function rgb(r: number, g: number, b: number) {
-  return { r: r / 255, g: g / 255, b: b / 255 }; // approximate for separator
 }

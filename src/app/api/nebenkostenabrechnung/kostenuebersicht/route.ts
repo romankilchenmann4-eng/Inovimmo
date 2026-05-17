@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   NAVY, DARK, GRAY, LINE_GRAY, FILL_BG, GREEN, RED, WHITE, LIGHT_BLUE,
   PAGE_W, PAGE_H, ML, MR, BW,
@@ -144,8 +144,4 @@ export async function POST(req: NextRequest) {
       "Content-Disposition": `inline; filename="Kostenuebersicht_${jahr}_${liegenschaft?.name?.replace(/\s/g, "_") ?? "Liegenschaft"}.pdf"`,
     },
   });
-}
-
-function rgb(r: number, g: number, b: number) {
-  return { r: r / 255, g: g / 255, b: b / 255 };
 }
