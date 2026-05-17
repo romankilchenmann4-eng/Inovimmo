@@ -141,9 +141,9 @@ export default function MieterspiegelImportPage() {
               .select("id")
               .single();
             if (liegErr) throw liegErr;
-            liegId = newLieg.id;
+            liegId = newLieg!.id;
           }
-          liegCache.set(liegKey, liegId);
+          liegCache.set(liegKey, liegId!);
         }
 
         // ── 2. Create Wohnung ───────────────────────────────────
