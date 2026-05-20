@@ -277,11 +277,17 @@ create policy "profiles_verwalter_read" on public.profiles
 create policy "liegenschaften_owner" on public.liegenschaften
   for all using (verwalter_id = auth.uid());
 
--- Wohnungen: via liegenschaft ownership
+-- Wohnungen: via liegenschaft ownership or mieter via mietverhaeltnisse
 create policy "wohnungen_owner" on public.wohnungen
   for all using (
     exists (select 1 from public.liegenschaften l where l.id = liegenschaft_id and l.verwalter_id = auth.uid())
-    or mieter_id = auth.uid()
+    or exists (
+      select 1 from public.mietverhaeltnisse mv
+      join public.mieter m on m.id = mv.mieter_id
+      where mv.wohnung_id = wohnungen.id
+        and (mv.mietende is null or mv.mietende > now())
+        and lower(m.email) = lower(auth.jwt() ->> 'email')
+    )
   );
 
 -- Tickets: ersteller or verwalter of liegenschaft or any dienstleister (to see ausgeschriebene)
