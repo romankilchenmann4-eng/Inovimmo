@@ -10,26 +10,75 @@ type Row = {
   bezeichnung: string;
   etage: string;
   zimmer: string;
+  flaeche_m2: string;
   netto_miete: string;
   nebenkosten: string;
   mieter_name: string;
   mieter_email: string;
 };
 
-const EXAMPLE_CSV = `liegenschaft,ort,bezeichnung,etage,zimmer,netto_miete,nebenkosten,mieter_name,mieter_email
-Musterstrasse 1,Zürich,Whg 01,EG,3,1800,200,Max Muster,max@muster.ch
-Musterstrasse 1,Zürich,Whg 02,1. OG,4,2200,250,Anna Beispiel,anna@beispiel.ch`;
+const EXAMPLE_CSV = `liegenschaft,ort,bezeichnung,etage,zimmer,flaeche_m2,netto_miete,nebenkosten,mieter_name,mieter_email
+Musterstrasse 1,Zürich,Whg 01,EG,3.5,75,1800,200,Max Muster,max@muster.ch
+Musterstrasse 1,Zürich,Whg 02,"1. OG",4.5,90,2200,250,Anna Beispiel,anna@beispiel.ch
+Musterstrasse 1,Zürich,Whg 03,2. OG,2,50,1400,150,,`;
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        fields.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
 
 function parseCsv(text: string): Row[] {
-  const lines = text.trim().split("\n");
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim());
+  const headers = parseCsvLine(lines[0]);
   return lines.slice(1).map(line => {
-    const vals = line.split(",").map(v => v.trim());
-    const obj: any = {};
+    const vals = parseCsvLine(line);
+    const obj: Record<string, string> = {};
     headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
     return obj as Row;
   });
+}
+
+function etageToNumber(etage: string): number {
+  const s = etage.trim().toLowerCase();
+  if (s === "eg" || s === "0" || s === "e" || s === "erdgeschoss" || s === "parterre") return 0;
+  if (s === "1. og" || s === "1. stock" || s === "1" || s === "1. stockwerk") return 1;
+  if (s === "2. og" || s === "2. stock" || s === "2" || s === "2. stockwerk") return 2;
+  if (s === "3. og" || s === "3. stock" || s === "3" || s === "3. stockwerk") return 3;
+  if (s === "dg" || s === "dachgeschoss") return 4;
+  const num = parseInt(s, 10);
+  return isNaN(num) ? 0 : num;
+}
+
+function splitName(full: string): { vorname: string; nachname: string } {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length < 2) return { vorname: full.trim(), nachname: "" };
+  return { vorname: parts[0], nachname: parts.slice(1).join(" ") };
 }
 
 export default function MieterspiegelImportPage() {
@@ -76,52 +125,119 @@ export default function MieterspiegelImportPage() {
       if (!user) throw new Error("Nicht eingeloggt");
 
       let imported = 0;
+      const liegenschaftCache = new Map<string, string>();
 
       for (const row of preview) {
-        let { data: lieg } = await supabase
-          .from("liegenschaften")
-          .select("id")
-          .eq("name", row.liegenschaft)
-          .eq("verwalter_id", user.id)
-          .maybeSingle();
+        // Find or create Liegenschaft
+        const liegKey = `${row.liegenschaft}|${row.ort}`;
+        let liegId = liegenschaftCache.get(liegKey);
 
-        if (!lieg) {
-          const { data: newLieg, error: liegErr } = await supabase
+        if (!liegId) {
+          const { data: lieg } = await supabase
             .from("liegenschaften")
+            .select("id")
+            .eq("name", row.liegenschaft)
+            .eq("ort", row.ort)
+            .eq("verwalter_id", user.id)
+            .maybeSingle();
+
+          if (lieg) {
+            liegId = lieg.id;
+          } else {
+            const { data: newLieg, error: liegErr } = await supabase
+              .from("liegenschaften")
+              .insert({
+                name: row.liegenschaft,
+                ort: row.ort,
+                verwalter_id: user.id,
+                anzahl_wohnungen: 0,
+              })
+              .select("id")
+              .single();
+            if (liegErr) throw liegErr;
+            liegId = newLieg!.id;
+          }
+          liegenschaftCache.set(liegKey, liegId!);
+        }
+
+        // Create Mieter if name provided
+        let mieterId: string | null = null;
+        if (row.mieter_name?.trim()) {
+          const { vorname, nachname } = splitName(row.mieter_name);
+          const { data: newMieter, error: mieterErr } = await supabase
+            .from("mieter")
             .insert({
-              name: row.liegenschaft,
-              ort: row.ort,
               verwalter_id: user.id,
-              anzahl_wohnungen: 0,
+              vorname,
+              nachname,
+              email: row.mieter_email?.trim() || null,
             })
             .select("id")
             .single();
-          if (liegErr) throw liegErr;
-          lieg = newLieg;
+          if (mieterErr) throw mieterErr;
+          mieterId = newMieter!.id;
         }
 
+        // Create Wohnung
         const netto = parseFloat(row.netto_miete) || 0;
         const nk = parseFloat(row.nebenkosten) || 0;
-        const { error: wErr } = await supabase.from("wohnungen").insert({
-          liegenschaft_id: lieg!.id,
+        const flaeche = parseFloat(row.flaeche_m2) || null;
+
+        const wohnungData: Record<string, unknown> = {
+          liegenschaft_id: liegId,
           verwalter_id: user.id,
           bezeichnung: row.bezeichnung,
-          etage: parseInt(row.etage) || 0,
+          etage: etageToNumber(row.etage),
+          position: row.etage || null,
           zimmer: parseFloat(row.zimmer) || 3.5,
+          flaeche_m2: flaeche,
           nettomiete: netto,
           nebenkosten_akonto: nk,
-          status: row.mieter_email ? "vermietet" : "leer",
-        });
+          status: mieterId ? "vermietet" : "leer",
+        };
+
+        const { data: newWohnung, error: wErr } = await supabase
+          .from("wohnungen")
+          .insert(wohnungData)
+          .select("id")
+          .single();
         if (wErr) throw wErr;
+
+        // Create Mietverhältnis linking mieter to wohnung
+        if (mieterId && newWohnung) {
+          const { error: mvErr } = await supabase
+            .from("mietverhaeltnisse")
+            .insert({
+              wohnung_id: newWohnung.id,
+              mieter_id: mieterId,
+              mietbeginn: new Date().toISOString().slice(0, 10),
+              ist_hauptperson: true,
+              ist_vertragspartner: true,
+            });
+          if (mvErr) throw mvErr;
+        }
+
         imported++;
+      }
+
+      // Update anzahl_wohnungen for all touched liegenschaften
+      for (const liegId of liegenschaftCache.values()) {
+        const { count } = await supabase
+          .from("wohnungen")
+          .select("id", { count: "exact", head: true })
+          .eq("liegenschaft_id", liegId);
+        await supabase
+          .from("liegenschaften")
+          .update({ anzahl_wohnungen: count ?? 0 })
+          .eq("id", liegId);
       }
 
       setResult(`✅ ${imported} Wohnungen erfolgreich importiert.`);
       setPreview([]);
       setCsvText("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (e: any) {
-      setError(e.message ?? "Unbekannter Fehler");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
     } finally {
       setLoading(false);
     }
@@ -132,7 +248,7 @@ export default function MieterspiegelImportPage() {
       <div>
         <h2 className="text-xl font-bold text-gray-900">Mieterspiegel importieren</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Lade deinen bestehenden Mieterspiegel als CSV hoch. Liegenschaften und Wohnungen werden automatisch angelegt.
+          Lade deinen bestehenden Mieterspiegel als CSV hoch. Liegenschaften, Wohnungen und Mieter werden automatisch angelegt.
         </p>
       </div>
 
@@ -150,7 +266,6 @@ export default function MieterspiegelImportPage() {
 
       {/* Upload oder einfügen */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-4 space-y-3">
-        {/* Datei-Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">CSV-Datei hochladen</label>
           <div className="flex items-center gap-3">
@@ -181,7 +296,7 @@ export default function MieterspiegelImportPage() {
           value={csvText}
           onChange={e => { setCsvText(e.target.value); setPreview([]); }}
           rows={6}
-          placeholder={`liegenschaft,ort,bezeichnung,etage,zimmer,netto_miete,nebenkosten,mieter_name,mieter_email\n...`}
+          placeholder={`liegenschaft,ort,bezeichnung,etage,zimmer,flaeche_m2,netto_miete,nebenkosten,mieter_name,mieter_email\n...`}
           className="w-full border border-gray-200 rounded-lg p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[hsl(214,76%,49%)]"
         />
         <button
@@ -222,7 +337,7 @@ export default function MieterspiegelImportPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {["Liegenschaft", "Ort", "Bezeichnung", "Etage", "Zi.", "Nettomiete", "NK", "Mieter"].map(h => (
+                  {["Liegenschaft", "Ort", "Bezeichnung", "Etage", "Zi.", "m²", "Nettomiete", "NK", "Mieter"].map(h => (
                     <th key={h} className="table-header">{h}</th>
                   ))}
                 </tr>
@@ -235,6 +350,7 @@ export default function MieterspiegelImportPage() {
                     <td className="table-cell">{row.bezeichnung}</td>
                     <td className="table-cell">{row.etage}</td>
                     <td className="table-cell">{row.zimmer}</td>
+                    <td className="table-cell">{row.flaeche_m2 || "—"}</td>
                     <td className="table-cell">CHF {row.netto_miete}</td>
                     <td className="table-cell">CHF {row.nebenkosten}</td>
                     <td className="table-cell">{row.mieter_name || <span className="text-gray-300">—</span>}</td>

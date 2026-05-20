@@ -33,12 +33,20 @@ export default async function ObjektePage() {
           <h2 className="text-xl font-bold text-gray-900">Objekte & Mieter</h2>
           <p className="text-sm text-gray-500">{liegenschaften?.length ?? 0} Liegenschaften</p>
         </div>
-        <Link
-          href="/dashboard/objekte/neu"
-          className="flex items-center gap-2 px-4 py-2 bg-[hsl(214,76%,49%)] text-white text-sm font-semibold rounded-xl hover:bg-[hsl(214,76%,44%)] transition-colors"
-        >
-          + Liegenschaft hinzufügen
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/objekte/import"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+          >
+            📄 Import
+          </Link>
+          <Link
+            href="/dashboard/objekte/neu"
+            className="flex items-center gap-2 px-4 py-2 bg-[hsl(214,76%,49%)] text-white text-sm font-semibold rounded-xl hover:bg-[hsl(214,76%,44%)] transition-colors"
+          >
+            + Liegenschaft hinzufügen
+          </Link>
+        </div>
       </div>
 
       {!liegenschaften?.length ? (
@@ -46,9 +54,14 @@ export default async function ObjektePage() {
           <p className="text-4xl mb-3">🏢</p>
           <p className="font-semibold text-gray-700 text-lg">Noch keine Liegenschaften</p>
           <p className="text-sm text-gray-400 mt-1 mb-5">Fügen Sie Ihre erste Liegenschaft hinzu.</p>
-          <Link href="/dashboard/objekte/neu" className="px-5 py-2.5 bg-[hsl(214,76%,49%)] text-white font-semibold rounded-xl text-sm">
-            + Erste Liegenschaft
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/objekte/import" className="px-5 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-200">
+              📄 Import
+            </Link>
+            <Link href="/dashboard/objekte/neu" className="px-5 py-2.5 bg-[hsl(214,76%,49%)] text-white font-semibold rounded-xl text-sm">
+              + Erste Liegenschaft
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4">
