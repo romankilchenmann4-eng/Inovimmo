@@ -178,7 +178,13 @@ drop policy if exists "wohnungen_owner" on public.wohnungen;
 create policy "wohnungen_owner" on public.wohnungen
   for all using (
     exists (select 1 from public.liegenschaften l where l.id = liegenschaft_id and l.verwalter_id = auth.uid())
-    or mieter_id = auth.uid()
+    or exists (
+      select 1 from public.mietverhaeltnisse mv
+      join public.mieter m on m.id = mv.mieter_id
+      where mv.wohnung_id = wohnungen.id
+        and (mv.mietende is null or mv.mietende > now())
+        and lower(m.email) = lower(auth.jwt() ->> 'email')
+    )
     or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
   );
 

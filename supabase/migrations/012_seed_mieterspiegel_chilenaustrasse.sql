@@ -88,53 +88,53 @@ BEGIN
   -- ============================================================
 
   -- 1001 EG links, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1001 EG links', '1001', 0, 4.5, 82, 1479, 295, 'vermietet', 'wohnung', true, 18.22, 'EG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1001 EG links', '1001', 0, 4.5, 82, 1479, 295, 'vermietet', 'wohnung', true, 18.22, 'EG links')
   RETURNING id INTO v_w_15_1001;
 
   -- 1002 EG rechts, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1002 EG rechts', '1002', 0, 3.5, 68, 1068, 227, 'vermietet', 'wohnung', true, 15.11, 'EG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1002 EG rechts', '1002', 0, 3.5, 68, 1068, 227, 'vermietet', 'wohnung', true, 15.11, 'EG rechts')
   RETURNING id INTO v_w_15_1002;
 
   -- 1011 1.OG links, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1011 1.OG links', '1011', 1, 4.5, 82, 1223, 275, 'vermietet', 'wohnung', true, 18.22, '1. OG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1011 1.OG links', '1011', 1, 4.5, 82, 1223, 275, 'vermietet', 'wohnung', true, 18.22, '1. OG links')
   RETURNING id INTO v_w_15_1011;
 
   -- 1012 1.OG rechts, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1012 1.OG rechts', '1012', 1, 3.5, 68, 1199, 247, 'vermietet', 'wohnung', true, 15.11, '1. OG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1012 1.OG rechts', '1012', 1, 3.5, 68, 1199, 247, 'vermietet', 'wohnung', true, 15.11, '1. OG rechts')
   RETURNING id INTO v_w_15_1012;
 
   -- 1021 2.OG links, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1021 2.OG links', '1021', 2, 4.5, 82, 1441, 265, 'vermietet', 'wohnung', true, 18.22, '2. OG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1021 2.OG links', '1021', 2, 4.5, 82, 1441, 265, 'vermietet', 'wohnung', true, 18.22, '2. OG links')
   RETURNING id INTO v_w_15_1021;
 
   -- 1022 2.OG rechts, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Whg 1022 2.OG rechts', '1022', 2, 3.5, 68, 1162, 252, 'vermietet', 'wohnung', true, 15.11, '2. OG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Whg 1022 2.OG rechts', '1022', 2, 3.5, 68, 1162, 252, 'vermietet', 'wohnung', true, 15.11, '2. OG rechts')
   RETURNING id INTO v_w_15_1022;
 
   -- EG Nr. 27 — Garage (MRS GmbH)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'EG Nr. 27 Garage', '27', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'EG Nr. 27 Garage', '27', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
   RETURNING id INTO v_w_15_g27;
 
   -- EG Nr. 30 — Garage (Cedric Dal Pont)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'EG Nr. 30 Garage', '30', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'EG Nr. 30 Garage', '30', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
   RETURNING id INTO v_w_15_g30;
 
   -- Bastelr. Nr. 2 — Bastelraum (Peter Sichelradner)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Bastelr. Nr. 2', 'B2', 0, 1, 0, 0, 57, 'vermietet', 'bastelraum', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Bastelr. Nr. 2', 'B2', 0, 1, 0, 0, 57, 'vermietet', 'bastelraum', false, 'EG')
   RETURNING id INTO v_w_15_b2;
 
   -- Bastelr. Nr. 4 — Bastelraum (Ursula Kurmer)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_15, v_verwalter_id, 'Bastelr. Nr. 4', 'B4', 0, 1, 0, 0, 78, 'vermietet', 'bastelraum', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_15, 'Bastelr. Nr. 4', 'B4', 0, 1, 0, 0, 78, 'vermietet', 'bastelraum', false, 'EG')
   RETURNING id INTO v_w_15_b4;
 
   -- ============================================================
@@ -142,43 +142,43 @@ BEGIN
   -- ============================================================
 
   -- 1001 EG links, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1001 EG links', '1001', 0, 3.5, 68, 1143, 237, 'vermietet', 'wohnung', true, 15.11, 'EG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1001 EG links', '1001', 0, 3.5, 68, 1143, 237, 'vermietet', 'wohnung', true, 15.11, 'EG links')
   RETURNING id INTO v_w_17_1001;
 
   -- 1002 EG rechts, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1002 EG rechts', '1002', 0, 4.5, 82, 1314, 273, 'vermietet', 'wohnung', true, 18.22, 'EG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1002 EG rechts', '1002', 0, 4.5, 82, 1314, 273, 'vermietet', 'wohnung', true, 18.22, 'EG rechts')
   RETURNING id INTO v_w_17_1002;
 
   -- 1011 1.OG links, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1011 1.OG links', '1011', 1, 3.5, 68, 1106, 227, 'vermietet', 'wohnung', true, 15.11, '1. OG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1011 1.OG links', '1011', 1, 3.5, 68, 1106, 227, 'vermietet', 'wohnung', true, 15.11, '1. OG links')
   RETURNING id INTO v_w_17_1011;
 
   -- 1012 1.OG rechts, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1012 1.OG rechts', '1012', 1, 4.5, 82, 1226, 215, 'vermietet', 'wohnung', true, 18.22, '1. OG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1012 1.OG rechts', '1012', 1, 4.5, 82, 1226, 215, 'vermietet', 'wohnung', true, 18.22, '1. OG rechts')
   RETURNING id INTO v_w_17_1012;
 
   -- 1021 2.OG links, 3.5-ZWG, 68m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1021 2.OG links', '1021', 2, 3.5, 68, 1375, 267, 'vermietet', 'wohnung', true, 15.11, '2. OG links')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1021 2.OG links', '1021', 2, 3.5, 68, 1375, 267, 'vermietet', 'wohnung', true, 15.11, '2. OG links')
   RETURNING id INTO v_w_17_1021;
 
   -- 1022 2.OG rechts, 4.5-ZWG, 82m²
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'Whg 1022 2.OG rechts', '1022', 2, 4.5, 82, 1453, 265, 'vermietet', 'wohnung', true, 18.22, '2. OG rechts')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, verteilschluessel_prozent, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'Whg 1022 2.OG rechts', '1022', 2, 4.5, 82, 1453, 265, 'vermietet', 'wohnung', true, 18.22, '2. OG rechts')
   RETURNING id INTO v_w_17_1022;
 
   -- PP Nr. 10 — Parkplatz (Petra Tofano)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'PP Nr. 10 Parkplatz', 'P10', 0, 0, 0, 0, 0, 'vermietet', 'parkplatz_aussen', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'PP Nr. 10 Parkplatz', 'P10', 0, 0, 0, 0, 0, 'vermietet', 'parkplatz_aussen', false, 'EG')
   RETURNING id INTO v_w_17_p10;
 
   -- EG Nr. 35 — Garage (Yves Zweifel)
-  INSERT INTO wohnungen (id, liegenschaft_id, verwalter_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
-  VALUES (gen_random_uuid(), v_lieg_17, v_verwalter_id, 'EG Nr. 35 Garage', '35', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
+  INSERT INTO wohnungen (id, liegenschaft_id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete, nebenkosten_akonto, status, wohnungstyp, beheizt, position)
+  VALUES (gen_random_uuid(), v_lieg_17, 'EG Nr. 35 Garage', '35', 0, 0, 0, 0, 0, 'vermietet', 'einstellgarage', false, 'EG')
   RETURNING id INTO v_w_17_g35;
 
   -- ============================================================
