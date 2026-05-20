@@ -211,7 +211,7 @@ export async function PATCH(req: NextRequest) {
   const existing = await admin
     .from("mieter")
     .select("id")
-    .eq("erstellt_von", tokenData.verwalter_id)
+    .eq("verwalter_id", tokenData.verwalter_id)
     .ilike("email", user.email)
     .maybeSingle();
 
@@ -227,7 +227,7 @@ export async function PATCH(req: NextRequest) {
     const { data: newMieter, error: mieterError } = await admin
       .from("mieter")
       .insert({
-        erstellt_von: tokenData.verwalter_id,
+        verwalter_id: tokenData.verwalter_id,
         vorname: firstName,
         nachname: lastName,
         email: user.email,

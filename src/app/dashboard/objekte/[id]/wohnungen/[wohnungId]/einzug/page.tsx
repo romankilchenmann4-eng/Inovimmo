@@ -40,7 +40,7 @@ export default function EinzugPage() {
       const { data: mieter, error: mieterErr } = await supabase
         .from("mieter")
         .insert({
-          erstellt_von: user.id,
+          verwalter_id: user.id,
           vorname: form.vorname,
           nachname: form.nachname,
           email: form.email || null,

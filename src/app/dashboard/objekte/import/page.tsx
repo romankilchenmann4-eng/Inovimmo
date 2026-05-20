@@ -185,6 +185,7 @@ export default function MieterspiegelImportPage() {
 
         const wohnungData: Record<string, unknown> = {
           liegenschaft_id: liegId,
+          verwalter_id: user.id,
           bezeichnung: row.bezeichnung,
           etage: etageToNumber(row.etage),
           position: row.etage || null,
