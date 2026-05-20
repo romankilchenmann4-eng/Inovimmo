@@ -30,7 +30,8 @@ export default async function ObjektePage() {
 
   if (!isAdmin) query = query.eq("verwalter_id", user!.id);
 
-  const { data: liegenschaften } = await query;
+  const { data: liegenschaften, error: liegError } = await query;
+  if (liegError) console.error("liegenschaften query error:", liegError);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
