@@ -28,7 +28,7 @@ alter table public.mieter enable row level security;
 
 drop policy if exists "mieter_owner" on public.mieter;
 create policy "mieter_owner" on public.mieter
-  for all using (erstellt_von = auth.uid());
+  for all using (verwalter_id = auth.uid());
 
 drop policy if exists "mieter_admin_read" on public.mieter;
 create policy "mieter_admin_read" on public.mieter

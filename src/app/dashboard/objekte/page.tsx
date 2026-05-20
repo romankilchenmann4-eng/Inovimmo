@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import SubNav from "@/components/ui/SubNav";
+
+const OBJEKTE_NAV = [
+  { href: "/dashboard/objekte", label: "Liegenschaften" },
+  { href: "/dashboard/mieterspiegel", label: "Mieterspiegel" },
+];
 
 export default async function ObjektePage() {
   const supabase = await createClient();
@@ -28,6 +34,8 @@ export default async function ObjektePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SubNav items={OBJEKTE_NAV} />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Objekte & Mieter</h2>
