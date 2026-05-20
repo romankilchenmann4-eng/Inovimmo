@@ -57,17 +57,29 @@ export default function MieterspiegelPage() {
   const [wohnungen, setWohnungen] = useState<Wohnung[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const loadLiegenschaften = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const admin = profile?.role === "admin";
+    setIsAdmin(admin);
+
+    let query = supabase
       .from("liegenschaften")
       .select("id, name, strasse, hausnummer, plz, ort, anzahl_wohnungen")
-      .eq("verwalter_id", user.id)
       .order("name");
 
+    if (!admin) query = query.eq("verwalter_id", user.id);
+
+    const { data } = await query;
     setLiegenschaften(data ?? []);
     if (data?.length) setSelectedLieg(data[0].id);
     setLoading(false);

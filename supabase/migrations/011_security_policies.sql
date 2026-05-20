@@ -165,3 +165,30 @@ create policy "liegenschaft_berechtigungen_admin" on public.liegenschaft_berecht
       and p.role = 'admin'
     )
   );
+
+-- ── LIEGENSCHAFTEN & WOHNUNGEN: Admin can see all ────────────────
+drop policy if exists "liegenschaften_owner" on public.liegenschaften;
+create policy "liegenschaften_owner" on public.liegenschaften
+  for all using (
+    verwalter_id = auth.uid()
+    or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
+
+drop policy if exists "wohnungen_owner" on public.wohnungen;
+create policy "wohnungen_owner" on public.wohnungen
+  for all using (
+    exists (select 1 from public.liegenschaften l where l.id = liegenschaft_id and l.verwalter_id = auth.uid())
+    or mieter_id = auth.uid()
+    or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
+
+drop policy if exists "mietverhaeltnisse_owner" on public.mietverhaeltnisse;
+create policy "mietverhaeltnisse_owner" on public.mietverhaeltnisse
+  for all using (
+    exists (
+      select 1 from public.liegenschaften l
+      join public.wohnungen w on w.liegenschaft_id = l.id
+      where w.id = mietverhaeltnisse.wohnung_id and l.verwalter_id = auth.uid()
+    )
+    or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
