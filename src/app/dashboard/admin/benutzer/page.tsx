@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminCreateUser } from "@/lib/admin/user-actions";
 import ImpersonateButton from "./ImpersonateButton";
+import UserActions from "./UserActions";
 
 const ROLE_BADGE: Record<string, string> = {
   admin:         "badge-red",
@@ -29,6 +30,26 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
   const { data: liegenschaften } = await supabase
     .from("liegenschaften").select("id, name").order("name");
 
+  // Fetch auth user status (banned?) via admin client
+  let authUsers: Record<string, { banned_until: string | null; confirmed_at: string | null }> = {};
+  if (isAdmin) {
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const adminClient = createAdminClient();
+      const { data } = await adminClient.auth.admin.listUsers();
+      if (data?.users) {
+        for (const u of data.users) {
+          authUsers[u.id] = {
+            banned_until: u.banned_until ?? null,
+            confirmed_at: u.confirmed_at ?? null,
+          };
+        }
+      }
+    } catch {
+      // Admin client not available in this context
+    }
+  }
+
   const counts = {
     total:         profiles?.length ?? 0,
     verwalter:     profiles?.filter(p => p.role === "verwalter").length ?? 0,
@@ -45,12 +66,12 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
 
       {flashError && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-          ⚠️ {decodeURIComponent(flashError)}
+          {decodeURIComponent(flashError)}
         </div>
       )}
       {flashSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
-          ✓ Benutzer erfolgreich erstellt
+          Benutzer erfolgreich erstellt
         </div>
       )}
 
@@ -81,14 +102,19 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
                 <th className="table-header">Name</th>
                 <th className="table-header">E-Mail</th>
                 <th className="table-header">Rolle</th>
-                <th className="table-header">Firma</th>
+                <th className="table-header">Status</th>
                 <th className="table-header">Seit</th>
                 {isAdmin && <th className="table-header">Aktionen</th>}
               </tr>
             </thead>
             <tbody>
-              {(profiles ?? []).map(p => (
-                <tr key={p.id} className="table-row">
+              {(profiles ?? []).map(p => {
+                const authInfo = authUsers[p.id as string];
+                const isBlocked = authInfo?.banned_until !== null && authInfo?.banned_until !== undefined;
+                const isUnconfirmed = !authInfo?.confirmed_at;
+
+                return (
+                <tr key={p.id} className={`table-row${isBlocked ? " opacity-50" : ""}`}>
                   <td className="table-cell">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[hsl(214,76%,49%)] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -101,16 +127,25 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
                   <td className="table-cell">
                     <span className={ROLE_BADGE[p.role as string] ?? "badge-gray"}>{p.role}</span>
                   </td>
-                  <td className="table-cell text-sm text-muted-foreground">{p.firma ?? "—"}</td>
+                  <td className="table-cell">
+                    {isBlocked ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Gesperrt</span>
+                    ) : isUnconfirmed ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Nicht bestaetigt</span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Aktiv</span>
+                    )}
+                  </td>
                   <td className="table-cell text-xs text-muted-foreground">
                     {new Date(p.created_at as string).toLocaleDateString("de-CH")}
                   </td>
                   {isAdmin && (
                     <td className="table-cell">
                       {p.id !== user!.id ? (
-                        <ImpersonateButton
+                        <UserActions
                           userId={p.id as string}
                           userName={(p.full_name as string | null) ?? (p.email as string | null) ?? "Benutzer"}
+                          isBlocked={isBlocked}
                         />
                       ) : (
                         <span className="text-xs text-muted-foreground">Du selbst</span>
@@ -118,7 +153,8 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
                     </td>
                   )}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -159,7 +195,7 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
                     <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>
-                <p className="text-xs text-muted-foreground mt-1">Ctrl/Cmd für Mehrfachauswahl</p>
+                <p className="text-xs text-muted-foreground mt-1">Ctrl/Cmd fuer Mehrfachauswahl</p>
               </div>
             </div>
             <button type="submit" className="btn-primary">
