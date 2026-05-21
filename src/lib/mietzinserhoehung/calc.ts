@@ -15,7 +15,10 @@ import type {
  *
  * Formel:
  *   Nettoinvestition = investition_total - foerderbeitraege
- *   Wertvermehrend = Nettoinvestition × (wertvermehrend_prozent / 100)
+ *   Wenn ersatzbeschaffung_1zu1 > 0 (OR-konform nach Art. 269a lit. b OR):
+ *     Wertvermehrend = Nettoinvestition - ersatzbeschaffung_1zu1
+ *   Sonst:
+ *     Wertvermehrend = Nettoinvestition × (wertvermehrend_prozent / 100)
  *   Jahressatz = referenzzinssatz + zuschlag + amortisation + unterhalt
  *   Jährliche Mehrbelastung = Wertvermehrend × (Jahressatz / 100)
  *   Monatliche Mehrbelastung = Jährlich / 12
@@ -24,7 +27,9 @@ import type {
  */
 export function berechneErhoehung(input: BerechnungsInput): BerechnungsErgebnis {
   const netto_investition = Math.max(0, input.investition_total - input.foerderbeitraege);
-  const wertvermehrender_betrag = netto_investition * (input.wertvermehrend_prozent / 100);
+  const wertvermehrender_betrag = input.ersatzbeschaffung_1zu1 > 0
+    ? Math.max(0, netto_investition - input.ersatzbeschaffung_1zu1)
+    : netto_investition * (input.wertvermehrend_prozent / 100);
 
   const jahressatz_total =
     input.referenzzinssatz +
@@ -82,6 +87,14 @@ export function generiereBegruendungstext(
     wertvermehrend_sonstiges: 'Wertvermehrende Investition',
   }[erhoehung.grund];
 
+  const ersatzLine = erhoehung.ersatzbeschaffung_1zu1 > 0
+    ? `- Ersatzbeschaffung 1:1 (Unterhaltsanteil): CHF ${fmt(erhoehung.ersatzbeschaffung_1zu1)}\n`
+    : '';
+
+  const nkLine = erhoehung.nebenkosten_aenderung_monatlich !== 0
+    ? `- Nebenkostenänderung total/Mt.: ${erhoehung.nebenkosten_aenderung_monatlich < 0 ? '' : '+'}CHF ${fmt(Math.abs(erhoehung.nebenkosten_aenderung_monatlich))}\n`
+    : '';
+
   return [
     'Wertvermehrende Investition gemäss Art. 269a lit. b OR i.V.m. Art. 14 VMWG:',
     '',
@@ -90,10 +103,12 @@ export function generiereBegruendungstext(
     `- Total Investitionskosten: CHF ${fmt(erhoehung.investition_total)}`,
     `- Abzüglich Förderbeiträge: CHF ${fmt(erhoehung.foerderbeitraege)}`,
     `- Nettoinvestition: CHF ${fmt(ergebnis.netto_investition)}`,
+    ersatzLine +
     `- Wertvermehrender Anteil: ${erhoehung.wertvermehrend_prozent}% = CHF ${fmt(ergebnis.wertvermehrender_betrag)}`,
     `- Jahressatz total (Verzinsung ${erhoehung.referenzzinssatz + erhoehung.zuschlag}% + Amortisation ${erhoehung.amortisation_prozent}% + Unterhalt ${erhoehung.unterhalt_prozent}%): ${ergebnis.jahressatz_total}%`,
     `- Jährliche Mehrbelastung total: CHF ${fmt(ergebnis.jaehrliche_mehrbelastung)}`,
     `- Monatliche Mehrbelastung total: CHF ${fmt(ergebnis.monatliche_mehrbelastung)}`,
+    nkLine +
     '- Verteilung auf Mietobjekte nach Anteil Nettomietzins (nur beheizte Objekte)',
   ].join('\n');
 }

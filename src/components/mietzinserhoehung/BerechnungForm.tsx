@@ -42,6 +42,7 @@ export function BerechnungForm({ erhoehung: initial, positionen: initialPosition
     investition_total: erhoehung.investition_total,
     foerderbeitraege: erhoehung.foerderbeitraege,
     wertvermehrend_prozent: erhoehung.wertvermehrend_prozent,
+    ersatzbeschaffung_1zu1: erhoehung.ersatzbeschaffung_1zu1 ?? 0,
     referenzzinssatz: erhoehung.referenzzinssatz,
     zuschlag: erhoehung.zuschlag,
     amortisation_prozent: erhoehung.amortisation_prozent,
@@ -66,6 +67,8 @@ export function BerechnungForm({ erhoehung: initial, positionen: initialPosition
           investition_total: erhoehung.investition_total,
           foerderbeitraege: erhoehung.foerderbeitraege,
           wertvermehrend_prozent: erhoehung.wertvermehrend_prozent,
+          ersatzbeschaffung_1zu1: erhoehung.ersatzbeschaffung_1zu1 ?? 0,
+          nebenkosten_aenderung_monatlich: erhoehung.nebenkosten_aenderung_monatlich ?? 0,
           referenzzinssatz: erhoehung.referenzzinssatz,
           zuschlag: erhoehung.zuschlag,
           amortisation_prozent: erhoehung.amortisation_prozent,
@@ -232,9 +235,19 @@ export function BerechnungForm({ erhoehung: initial, positionen: initialPosition
                 value={erhoehung.foerderbeitraege}
                 onChange={v => setErhoehung({ ...erhoehung, foerderbeitraege: v })}
               />
+              <FormField
+                label="Ersatzbeschaffung 1:1 (CHF)"
+                value={erhoehung.ersatzbeschaffung_1zu1 ?? 0}
+                onChange={v => setErhoehung({ ...erhoehung, ersatzbeschaffung_1zu1: v })}
+              />
+              <FormField
+                label="NK-Änderung total/Mt. (CHF)"
+                value={erhoehung.nebenkosten_aenderung_monatlich ?? 0}
+                onChange={v => setErhoehung({ ...erhoehung, nebenkosten_aenderung_monatlich: v })}
+              />
               <div className="md:col-span-2">
                 <FormField
-                  label="Wertvermehrender Anteil in % (typ. 50–70 % bei Systemwechsel)"
+                  label="Wertvermehrender Anteil in % (automatisch bei Ersatzbeschaffung, sonst typ. 50–70%)"
                   step="1"
                   value={erhoehung.wertvermehrend_prozent}
                   onChange={v => setErhoehung({ ...erhoehung, wertvermehrend_prozent: v })}
@@ -249,12 +262,28 @@ export function BerechnungForm({ erhoehung: initial, positionen: initialPosition
                   CHF {fmt(ergebnis.netto_investition)}
                 </span>
               </div>
+              {erhoehung.ersatzbeschaffung_1zu1 > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Ersatzbeschaffung 1:1 (Unterhaltsanteil):</span>
+                  <span className="font-mono font-semibold text-gray-600">
+                    CHF {fmt(erhoehung.ersatzbeschaffung_1zu1)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-700">Wertvermehrender Betrag:</span>
                 <span className="font-mono font-semibold text-[hsl(214,76%,49%)]">
                   CHF {fmt(ergebnis.wertvermehrender_betrag)}
                 </span>
               </div>
+              {erhoehung.nebenkosten_aenderung_monatlich !== 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Nebenkostenänderung total/Mt.:</span>
+                  <span className={`font-mono font-semibold ${erhoehung.nebenkosten_aenderung_monatlich < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {erhoehung.nebenkosten_aenderung_monatlich < 0 ? '' : '+'}CHF {fmt(Math.abs(erhoehung.nebenkosten_aenderung_monatlich))}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

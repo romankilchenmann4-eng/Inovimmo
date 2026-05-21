@@ -66,4 +66,6 @@ export const ALLOWED_ERHOEHUNG_FIELDS = [
   "eigentuemer_ort",
   "mietbeginn",
   "mietende",
+  "ersatzbeschaffung_1zu1",
+  "nebenkosten_aenderung_monatlich",
 ] as const;

@@ -36,6 +36,8 @@ export interface MietzinsErhoehung {
   unterhalt_prozent: number;
   netto_investition: number;
   jahressatz_total: number;
+  ersatzbeschaffung_1zu1: number;
+  nebenkosten_aenderung_monatlich: number;
   status: MietzinsErhoehungStatus;
   inkrafttreten: string | null;
   eigentuemer_name: string | null;
@@ -79,6 +81,7 @@ export interface BerechnungsInput {
   investition_total: number;
   foerderbeitraege: number;
   wertvermehrend_prozent: number;
+  ersatzbeschaffung_1zu1: number;
   referenzzinssatz: number;
   zuschlag: number;
   amortisation_prozent: number;
