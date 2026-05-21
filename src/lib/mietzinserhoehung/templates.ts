@@ -33,9 +33,9 @@ gestützt auf Art. 269d des Schweizerischen Obligationenrechts (OR) teilen wir I
 
 Die Miete setzt sich wie folgt zusammen:
 
-Nettomietzins:         CHF {{miete_alt}}  →  CHF {{miete_neu}}  (Erhöhung: CHF {{erhoehung_monatlich}}/Monat)
-Nebenkosten (akonto):  CHF {{nebenkosten_alt}}  →  CHF {{nebenkosten_neu}}
-Bruttomiete:           CHF {{brutto_alt}}  →  CHF {{brutto_neu}}
+Nettomietzins:         CHF {{miete_alt}} auf CHF {{miete_neu}} (Erhöhung: CHF {{erhoehung_monatlich}}/Monat)
+Nebenkosten (akonto):  CHF {{nebenkosten_alt}} auf CHF {{nebenkosten_neu}}
+Bruttomiete:           CHF {{brutto_alt}} auf CHF {{brutto_neu}}
 
 Die Erhöhung beträgt CHF {{erhoehung_monatlich}} pro Monat und wirkt sich auf die Bruttomiete aus.
 

@@ -1,5 +1,6 @@
 // Mietzinserhoehung — Shared PDF generation functions
 // Used by formular, einschreiben, and komplett routes
+// Form field positions extracted from Formular-Mietzinserhoehung.pdf
 
 import { createClient } from '@/lib/supabase/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
@@ -62,7 +63,6 @@ async function fetchData(
     .eq('id', mieterId)
     .maybeSingle();
 
-  // Validate mieter belongs to this wohnung
   const { data: mietverhaeltnis } = await supabase
     .from('mietverhaeltnisse')
     .select('id')
@@ -190,37 +190,98 @@ export async function generateFormularPdf(
     position.begruendung ||
     'Mietzinserhöhung infolge wertvermehrender Investitionen und Kostensteigerungen.';
 
-  // PAGE 1 — Mieter
-  drawMultiline(page1, mieterName, 85, 655, font, 10);
-  if (mieter?.strasse) drawText(page1, mieter.strasse, 85, 643, font, 9);
-  if (mieter?.plz && mieter?.ort) drawText(page1, `${mieter.plz} ${mieter.ort}`, 85, 631, font, 9);
+  // ============================================================
+  // PAGE 1 — Formularfelder basierend auf echten PDF-Feldkoordinaten
+  // ============================================================
 
-  // PAGE 1 — Eigentümer/Vermieter
-  drawMultiline(page1, eigentuemerName, 85, 535, font, 10);
-  if (erhoehung.eigentuemer_adresse) drawText(page1, erhoehung.eigentuemer_adresse, 85, 523, font, 9);
-  if (erhoehung.eigentuemer_ort) drawText(page1, erhoehung.eigentuemer_ort, 85, 511, font, 9);
+  // EMPFÄNGER (Mieter) — Linkes Kuvertfenster
+  // Feld: "Einschreiben Feld Adresseingabe LINKS 4" [x=59, y=588, w=232, h=113]
+  drawText(page1, mieterName, 65, 685, font, 10);
+  if (mieter?.strasse) drawText(page1, mieter.strasse, 65, 670, font, 9);
+  if (mieter?.plz && mieter?.ort) drawText(page1, `${mieter.plz} ${mieter.ort}`, 65, 655, font, 9);
 
-  drawText(page1, 'X', 231, 425, bold, 12);
+  // ABSENDER / VERMIETER — Rechtes Kuvertfenster
+  // Feld: "Einschreiben Feld Adresseingabe 1 RECHTS 4" [x=306, y=588, w=232, h=113]
+  // Absender = Vermieter (Kurt Rusch)
+  drawText(page1, eigentuemerName, 312, 685, font, 10);
+  if (erhoehung.eigentuemer_adresse) drawText(page1, erhoehung.eigentuemer_adresse, 312, 670, font, 9);
+  if (erhoehung.eigentuemer_ort) drawText(page1, erhoehung.eigentuemer_ort, 312, 655, font, 9);
 
-  drawText(page1, `${liegenschaftAdresse} / ${wohnungText}`, 158, 395, font, 10);
+  // ABSENDER/IN Textfeld — unterhalb der Fenster
+  // Feld: "Absender/in Text Eingabefeld 4" [x=59, y=491, w=234, h=61]
+  const absenderLines = [
+    eigentuemerName,
+    erhoehung.eigentuemer_adresse,
+    erhoehung.eigentuemer_ort,
+  ].filter(Boolean);
+  absenderLines.forEach((line, i) => {
+    if (line) drawText(page1, line, 65, 540 - i * 14, font, 9);
+  });
 
-  drawText(page1, 'X', 196, 351, bold, 12);
+  // KONTROLLKÄSTCHEN 1: Mietzinserhöhung
+  // Feld: "Kontrollkästchen 1" [x=161, y=409, w=12, h=12]
+  drawText(page1, 'X', 164, 411, bold, 12);
 
-  drawText(page1, chf(alteMiete), 340, 272, font, 10);
-  drawText(page1, chf(neueMiete), 485, 272, font, 10);
+  // LIEGENSCHAFT — Adresse und Wohnung
+  // Feld: "Textfeld 4" [x=110, y=393, w=429, h=12]
+  drawText(page1, `${liegenschaftAdresse} / ${wohnungText}`, 115, 397, font, 10);
 
-  drawText(page1, chf(alteNk), 340, 239, font, 10);
-  drawText(page1, chf(neueNk), 485, 239, font, 10);
+  // KONTROLLKÄSTCHEN 3: Wohnung
+  // Feld: "Kontrollkästchen 3" [x=134, y=342, w=12, h=12]
+  drawText(page1, 'X', 137, 344, bold, 12);
 
-  drawText(page1, chf(alteBrutto), 405, 128, bold, 11);
-  drawText(page1, chf(neueBrutto), 573, 128, bold, 11);
+  // FINANZTABELLE — Nettomietzins (Zeile 1)
+  // Textfeld 7 (bisher): [x=235, y=282, w=84, h=13]
+  // Textfeld 8 (neu ab): [x=350, y=282, w=84, h=13]
+  drawText(page1, chf(alteMiete), 240, 286, font, 10);
+  drawText(page1, chf(neueMiete), 355, 286, font, 10);
 
-  drawMultiline(page1, begruendung, 85, 83, font, 9, 95);
+  // FINANZTABELLE — Nebenkosten (Zeile 2)
+  // Textfeld 10 (bisher): [x=235, y=253, w=84, h=13]
+  // Textfeld 11 (neu ab): [x=350, y=253, w=84, h=13]
+  drawText(page1, chf(alteNk), 240, 257, font, 10);
+  drawText(page1, chf(neueNk), 355, 257, font, 10);
 
+  // FINANZTABELLE — Total Bruttomiete
+  // Textfeld 30 (bisher): [x=235, y=143, w=84, h=15]
+  // Textfeld 31 (neu ab): [x=350, y=143, w=84, h=15]
+  drawText(page1, chf(alteBrutto), 240, 148, bold, 11);
+  drawText(page1, chf(neueBrutto), 355, 148, bold, 11);
+
+  // BEGRÜNDUNG — 4 Zeilen
+  // Textfeld 32: [x=59, y=100, w=480, h=12]
+  // Textfeld 76: [x=59, y=84, w=480, h=12]
+  // Textfeld 74: [x=59, y=69, w=480, h=12]
+  // Textfeld 75: [x=59, y=53, w=480, h=12]
+  const begruendungWords = String(begruendung).split(/\s+/);
+  const begruendungLines: string[] = [];
+  let bLine = '';
+  for (const word of begruendungWords) {
+    if ((bLine + ' ' + word).trim().length > 80) {
+      begruendungLines.push(bLine);
+      bLine = word;
+    } else {
+      bLine = (bLine + ' ' + word).trim();
+    }
+  }
+  if (bLine) begruendungLines.push(bLine);
+
+  const begruendungYPositions = [104, 88, 73, 57];
+  begruendungLines.slice(0, 4).forEach((l, i) => {
+    drawText(page1, l, 65, begruendungYPositions[i], font, 9);
+  });
+
+  // ============================================================
   // PAGE 2
-  const datumsOrt = erhoehung.eigentuemer_ort || 'Dällikon';
-  drawText(page2, `${datumsOrt}, ${new Date().toLocaleDateString('de-CH')}`, 80, 735, font, 10);
+  // ============================================================
 
+  // ORT UND DATUM — Zeile 1
+  // Textfeld 70: [x=199, y=738, w=339, h=14]
+  const datumsOrt = erhoehung.eigentuemer_ort || 'Dällikon';
+  drawText(page2, `${datumsOrt}, ${new Date().toLocaleDateString('de-CH')}`, 205, 742, font, 10);
+
+  // UMSCHREIBUNG DER ÄNDERUNG — Freitextbereich
+  // Zwischen Textfeld 72 (y=708) und Unterschriftsbereich (y=620)
   drawMultiline(
     page2,
     `Erhöhung des Nettomietzinses um ${chf(erhoehungMonat)} pro Monat.`,
@@ -244,10 +305,13 @@ export async function generateFormularPdf(
     10,
   );
 
+  // FÖRDERBEITRÄGE Ja/Nein
+  // Kontrollkästchen 42 (Ja): [x=369, y=786, w=12, h=12]
+  // Kontrollkästchen 43 (Nein): [x=406, y=786, w=12, h=12]
   if (Number(erhoehung.foerderbeitraege || 0) > 0) {
-    drawText(page2, 'X', 92, 386, bold, 12);
+    drawText(page2, 'X', 372, 788, bold, 12);
   } else {
-    drawText(page2, 'X', 137, 386, bold, 12);
+    drawText(page2, 'X', 409, 788, bold, 12);
   }
 
   return pdfDoc.save();
@@ -356,7 +420,7 @@ export async function generateEinschreibenPdf(
   txt(page, dateLine, MR - dateW, y, fontR, 9, DARK);
   y -= 30;
 
-  // Subject — bold
+  // Subject — bold with horizontal rule
   txt(page, 'Mitteilung der Mietzinserhöhung gemäss Art. 269d OR', ML, y, fontB, 11, DARK);
   y -= 4;
   drawHR(page, ML, y, MR);
@@ -371,7 +435,6 @@ export async function generateEinschreibenPdf(
       y = PAGE_H - 40;
     }
 
-    // Section headings (numbered like "1.", "2.", etc.)
     const isHeading = /^\d+\.\s/.test(line.trim());
     if (isHeading) {
       y -= 4;
