@@ -359,7 +359,7 @@ export async function generateEinschreibenPdf(
   // Subject — bold
   txt(page, 'Mitteilung der Mietzinserhöhung gemäss Art. 269d OR', ML, y, fontB, 11, DARK);
   y -= 4;
-  drawHR(page, y);
+  drawHR(page, ML, y, MR);
   y -= 14;
 
   // Body
