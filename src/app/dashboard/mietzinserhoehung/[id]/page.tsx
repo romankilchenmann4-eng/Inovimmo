@@ -52,6 +52,26 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
     (wohnungen ?? []).map((w: any) => [w.id, w])
   );
 
+  // Fetch mieter per wohnung
+  const { data: mietverhaeltnisse } = wohnungIds.length
+    ? await supabase
+        .from('mietverhaeltnisse')
+        .select(`
+          wohnung_id,
+          ist_vertragspartner,
+          mieter:mieter_id (id, vorname, nachname)
+        `)
+        .in('wohnung_id', wohnungIds)
+        .is('mietende', null)
+    : { data: [] };
+
+  const mieterByWohnung = new Map<string, any[]>();
+  for (const mv of (mietverhaeltnisse ?? []) as any[]) {
+    const list = mieterByWohnung.get(mv.wohnung_id) ?? [];
+    list.push(mv);
+    mieterByWohnung.set(mv.wohnung_id, list);
+  }
+
   async function speichernUndBerechnen(formData: FormData) {
     'use server';
 
@@ -224,12 +244,13 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
               <thead className="bg-gray-50 text-left">
                 <tr>
                   <th className="p-3">Wohnung</th>
+                  <th className="p-3">Mieter</th>
                   <th className="p-3">Anteil</th>
                   <th className="p-3">Alte Nettomiete</th>
                   <th className="p-3">Erhöhung / Mt.</th>
                   <th className="p-3">Neue Nettomiete</th>
                   <th className="p-3">Investitionsanteil</th>
-                  <th className="p-3">Formular</th>
+                  <th className="p-3">Dokumente</th>
                 </tr>
               </thead>
 
@@ -244,10 +265,27 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
                     w?.name ||
                     p.wohnung_id;
 
+                  const mieterList = mieterByWohnung.get(p.wohnung_id) ?? [];
+
                   return (
                     <tr key={p.id} className="border-t">
                       <td className="p-3 font-medium">
                         {wohnungLabel}
+                      </td>
+
+                      <td className="p-3 text-xs">
+                        {mieterList.length === 0 ? (
+                          <span className="text-gray-400">Kein Mieter</span>
+                        ) : (
+                          mieterList.map((mv: any) => {
+                            const name = `${mv.mieter?.vorname ?? ''} ${mv.mieter?.nachname ?? ''}`.trim();
+                            return (
+                              <div key={mv.mieter?.id} className="py-0.5">
+                                {name}
+                              </div>
+                            );
+                          })
+                        )}
                       </td>
 
                       <td className="p-3">
@@ -271,12 +309,42 @@ export default async function MietzinsErhoehungDetailPage({ params }: PageProps)
                       </td>
 
                       <td className="p-3">
-                        <Link
-                          href={`/dashboard/mietzinserhoehung/${id}/export/formular/${p.id}`}
-                          className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
-                        >
-                          Amtliches Formular
-                        </Link>
+                        {mieterList.length === 0 ? (
+                          <Link
+                            href={`/dashboard/mietzinserhoehung/${id}/export/formular/${p.id}`}
+                            className="rounded border px-2 py-0.5 text-xs hover:bg-gray-50"
+                          >
+                            Formular
+                          </Link>
+                        ) : (
+                          <div className="space-y-1">
+                            {mieterList.map((mv: any) => {
+                              const mieterId = mv.mieter?.id;
+                              return (
+                                <div key={mieterId} className="flex items-center gap-1">
+                                  <Link
+                                    href={`/dashboard/mietzinserhoehung/${id}/export/formular/${p.id}/${mieterId}`}
+                                    className="rounded border px-2 py-0.5 text-xs hover:bg-gray-50"
+                                  >
+                                    Formular
+                                  </Link>
+                                  <Link
+                                    href={`/dashboard/mietzinserhoehung/${id}/export/einschreiben/${p.id}/${mieterId}`}
+                                    className="rounded border px-2 py-0.5 text-xs hover:bg-gray-50"
+                                  >
+                                    Einschreiben
+                                  </Link>
+                                  <Link
+                                    href={`/dashboard/mietzinserhoehung/${id}/export/komplett/${p.id}/${mieterId}`}
+                                    className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100"
+                                  >
+                                    Komplett
+                                  </Link>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

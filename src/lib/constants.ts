@@ -60,6 +60,10 @@ export const ALLOWED_ERHOEHUNG_FIELDS = [
   "zuschlag_prozent",
   "amortisation_prozent",
   "unterhalt_prozent",
+  "inkrafttreten",
+  "eigentuemer_name",
+  "eigentuemer_adresse",
+  "eigentuemer_ort",
   "mietbeginn",
   "mietende",
 ] as const;

@@ -34,10 +34,13 @@ export interface MietzinsErhoehung {
   zuschlag: number;
   amortisation_prozent: number;
   unterhalt_prozent: number;
-  netto_investition: number;       // generated column
-  jahressatz_total: number;        // generated column
+  netto_investition: number;
+  jahressatz_total: number;
   status: MietzinsErhoehungStatus;
   inkrafttreten: string | null;
+  eigentuemer_name: string | null;
+  eigentuemer_adresse: string | null;
+  eigentuemer_ort: string | null;
   begruendung_text: string | null;
   created_at: string;
   updated_at: string;
