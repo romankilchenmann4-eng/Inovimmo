@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { timingSafeEqual } from "crypto";
 
-export type AutomationJobName = "monatssoll" | "mahnungen" | "vertrag-reminder";
+export type AutomationJobName = "monatssoll" | "mahnungen" | "vertrag-reminder" | "nk-abrechnung";
 export type AutomationTrigger = "cron" | "manual" | "status";
 
 export function getAutomationAdminClient(): SupabaseClient {
@@ -17,7 +18,12 @@ export function isCronAuthorized(req: NextRequest) {
 
   const auth = req.headers.get("authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  return token === secret;
+  if (!token) return false;
+  try {
+    return timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+  } catch {
+    return false;
+  }
 }
 
 export async function startAutomationRun(

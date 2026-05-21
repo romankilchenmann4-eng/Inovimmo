@@ -6,6 +6,7 @@ const JOB_PATHS: Record<AutomationJobName, string> = {
   monatssoll: "/api/cron/monatssoll",
   mahnungen: "/api/cron/mahnungen",
   "vertrag-reminder": "/api/cron/vertrag-reminder",
+  "nk-abrechnung": "/api/cron/nk-abrechnung",
 };
 
 export const dynamic = "force-dynamic";

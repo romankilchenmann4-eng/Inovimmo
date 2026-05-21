@@ -99,17 +99,34 @@ export async function POST(req: NextRequest) {
     path: "/",
   });
 
-  // Logging für Audit-Trail
+  // Audit-Logging in Datenbank
+  try {
+    await supabase.from("audit_log").insert({
+      action: "impersonation_start",
+      actor_id: user.id,
+      target_id: userId,
+      details: { target_email: target.email, target_role: target.role },
+    });
+  } catch {
+    // Audit-Log-Fehler soll den Vorgang nicht blockieren
+  }
+
   console.log(`Impersonation: Admin ${user.id} wechselt zu ${userId} (${target.email})`);
 
-  return NextResponse.json({ ok: true, impersonating: target, actionLink });
+  return NextResponse.json({ ok: true, impersonating: { id: target.id, full_name: target.full_name, role: target.role } });
 }
 
-// DELETE — Admin ends impersonation
+// DELETE — End impersonation
 export async function DELETE() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    await requireAdmin(supabase, user.id);
+  } catch {
+    return NextResponse.json({ error: "Nur Admins können Impersonation beenden" }, { status: 403 });
+  }
 
   const jar = await cookies();
   jar.delete(COOKIE);

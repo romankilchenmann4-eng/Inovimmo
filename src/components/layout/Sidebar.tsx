@@ -31,6 +31,12 @@ const NAV: NavItem[] = [
     icon: "🏢",
     roles: ["admin", "verwalter"],
   },
+  {
+    href: "/dashboard/mieterspiegel",
+    label: "Mieterspiegel",
+    icon: "📋",
+    roles: ["admin", "verwalter"],
+  },
 
   {
     href: "/dashboard/eigentuemerportal",
@@ -43,7 +49,7 @@ const NAV: NavItem[] = [
     href: "/dashboard/tickets",
     label: "Aufträge",
     icon: "🔨",
-    roles: ["admin", "verwalter", "dienstleister", "mieter"],
+    roles: ["admin", "verwalter", "dienstleister"],
     activeFor: ["/dashboard/offerten", "/dashboard/escrow"],
   },
 

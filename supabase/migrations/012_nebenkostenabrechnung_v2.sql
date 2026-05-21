@@ -5,7 +5,7 @@
 
 -- ── NK-ZÄHLER (Meter/Counter Readings) ──────────────────────
 create table if not exists public.nk_zaehler (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   liegenschaft_id   uuid not null references public.liegenschaften(id) on delete cascade,
   wohnung_id        uuid references public.wohnungen(id) on delete set null,
   bezeichnung       text not null,
@@ -24,7 +24,7 @@ create index idx_nk_zaehler_wohnung on public.nk_zaehler(wohnung_id);
 
 -- ── NK-VERTEILSCHLÜSSEL (Allocation Key per Category) ──────
 create table if not exists public.nk_verteilschluessel (
-  id                    uuid primary key default uuid_generate_v4(),
+  id                    uuid primary key default gen_random_uuid(),
   liegenschaft_id       uuid not null references public.liegenschaften(id) on delete cascade,
   kategorie             text not null check (kategorie in (
     'heizung','warmwasser','wasser_abwasser','kehricht','allgemeinstrom',
@@ -39,9 +39,29 @@ create table if not exists public.nk_verteilschluessel (
   unique(liegenschaft_id, kategorie)
 );
 
+-- ── NK-ABRECHNUNG POSITIONEN (Per-settlement position lines) ─
+create table if not exists public.nk_abrechnung_positionen (
+  id                    uuid primary key default gen_random_uuid(),
+  abrechnung_id         uuid not null references public.nebenkostenabrechnungen(id) on delete cascade,
+  position_id           uuid references public.nebenkostenpositionen(id) on delete set null,
+  bezeichnung           text not null,
+  kategorie             text not null,
+  betrag_total          numeric(10,2) not null default 0,
+  anteil_prozent        numeric(6,2) not null default 0,
+  betrag_anteil         numeric(10,2) not null default 0,
+  verteilschluessel_typ text check (verteilschluessel_typ in ('flaeche','kopf','gleich','verbrauch','gemischt')),
+  zaehlerstand_start    numeric(12,2),
+  zaehlerstand_end      numeric(12,2),
+  verbrauch_einheit     numeric(12,2),
+  notiz                 text,
+  created_at            timestamptz not null default now()
+);
+
+create index idx_nk_abrechnung_pos_abrechnung on public.nk_abrechnung_positionen(abrechnung_id);
+
 -- ── NK-ABRECHNUNG VORLAGEN (Cover Letter Templates) ─────────
 create table if not exists public.nk_abrechnung_vorlagen (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   verwalter_id      uuid not null references public.profiles(id) on delete cascade,
   name              text not null default 'Standard',
   ton               text not null default 'neutral' check (ton in ('neutral','freundlich','streng')),
@@ -60,7 +80,7 @@ create index idx_nk_vorlagen_verwalter on public.nk_abrechnung_vorlagen(verwalte
 
 -- ── NK-ABRECHNUNG DOKUMENTE (Generated Document Tracking) ───
 create table if not exists public.nk_abrechnung_dokumente (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   abrechnung_id     uuid not null references public.nebenkostenabrechnungen(id) on delete cascade,
   dokument_typ      text not null check (dokument_typ in (
     'abrechnung','begleitschreiben','kostenuebersicht','detailbeilage','batch_pdf'
@@ -87,31 +107,17 @@ alter table public.nebenkostenpositionen
 alter table public.nebenkostenabrechnungen
   add column if not exists periode_von date,
   add column if not exists periode_bis date,
-  add column if not exists total_kosten numeric(10,2) default 0,
-  add column if not exists total_vorschuss numeric(10,2) default 0;
-
--- nachzahlung as generated column (kosten_total - akonto_total)
--- Only add if not exists; differenz already exists as generated column
-do $$
-begin
-  if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'nebenkostenabrechnungen' and column_name = 'nachzahlung'
-  ) then
-    alter table public.nebenkostenabrechnungen
-      add column nachzahlung numeric(10,2) generated always as (kosten_total - akonto_total) stored;
-  end if;
-end $$;
-
-alter table public.nebenkostenabrechnungen
   add column if not exists zahlungsfrist date,
   add column if not exists begleitschreiben_ton text default 'neutral' check (begleitschreiben_ton in ('neutral','freundlich','streng')),
   add column if not exists bankkonto_id uuid references public.bankkonten(id) on delete set null,
   add column if not exists verwalter_id uuid references public.profiles(id) on delete set null,
   add column if not exists notiz text;
 
+-- Rename versendet_at → versendet_an if needed (keep old column, add new)
+alter table public.nebenkostenabrechnungen
+  add column if not exists versendet_an text;
+
 -- Expand status constraint to include more granular states
--- First drop the existing check constraint if it exists
 do $$
 declare
   constraint_name text;
@@ -133,14 +139,6 @@ alter table public.nebenkostenabrechnungen
   add constraint nk_abrechnung_status_check
     check (status in ('entwurf','berechnet','versendet','teilweise_bezahlt','bezahlt','angefochten'));
 
--- ── ERWEITERUNG: nk_abrechnung_positionen ────────────────────
-alter table public.nk_abrechnung_positionen
-  add column if not exists zaehlerstand_start numeric(12,2),
-  add column if not exists zaehlerstand_end numeric(12,2),
-  add column if not exists verbrauch_einheit numeric(12,2),
-  add column if not exists verteilschluessel_typ text check (verteilschluessel_typ is null or verteilschluessel_typ in ('flaeche','kopf','gleich','verbrauch','gemischt')),
-  add column if not exists notiz text;
-
 -- ── RLS POLICIES ────────────────────────────────────────────
 alter table public.nk_zaehler enable row level security;
 create policy "nk_zaehler_owner" on public.nk_zaehler
@@ -160,6 +158,16 @@ create policy "nk_vorlagen_owner" on public.nk_abrechnung_vorlagen
 
 alter table public.nk_abrechnung_dokumente enable row level security;
 create policy "nk_dokumente_owner" on public.nk_abrechnung_dokumente
+  for all using (
+    exists (
+      select 1 from public.nebenkostenabrechnungen a
+      join public.liegenschaften l on l.id = a.liegenschaft_id
+      where a.id = abrechnung_id and l.verwalter_id = auth.uid()
+    )
+  );
+
+alter table public.nk_abrechnung_positionen enable row level security;
+create policy "nk_abrechnung_positionen_owner" on public.nk_abrechnung_positionen
   for all using (
     exists (
       select 1 from public.nebenkostenabrechnungen a

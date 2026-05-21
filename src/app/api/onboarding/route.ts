@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendWillkommen } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -116,26 +117,15 @@ export async function POST(req: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://inovimmo.ch";
   const link = `${baseUrl}/onboarding/${token.token}`;
 
-  // Send invitation email
+  // Send invitation email directly (no self-HTTP call)
   try {
-    const { data: { user: verwalterUser } } = await supabase.auth.getUser();
     const { data: verwalterProfile } = await supabase.from("profiles").select("full_name,firma").eq("id", user.id).single();
     const verwalterName = verwalterProfile?.firma ?? verwalterProfile?.full_name ?? "Ihr Verwalter";
 
-    await fetch(`${baseUrl}/api/email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "willkommen",
-        to: mieter_email,
-        data: {
-          name: `${mieter_vorname ?? ""} ${mieter_nachname ?? ""}`.trim() || "Neuer Mieter",
-          wohnung: wohnung?.bezeichnung ?? "",
-          liegenschaft: lg.name,
-          verwalter: verwalterName,
-          onboarding_link: link,
-        },
-      }),
+    await sendWillkommen({
+      to: mieter_email,
+      name: `${mieter_vorname ?? ""} ${mieter_nachname ?? ""}`.trim() || "Neuer Mieter",
+      role: "mieter",
     });
   } catch {
     // Email send failure is non-fatal

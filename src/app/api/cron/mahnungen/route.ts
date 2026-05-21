@@ -96,13 +96,16 @@ export async function POST(req: NextRequest) {
 
     if (!wohnung?.liegenschaft?.verwalter_id) { übersprungen++; continue; }
 
-    // Check if payment exists for this wohnung+periode
-    const bezahlt = (zahlungen ?? []).some(
+    // Check if payment covers the full amount for this wohnung+periode
+    const zahlungenFuerPeriode = (zahlungen ?? []).filter(
       z =>
         z.wohnung_id === soll.wohnung_id &&
         z.periode_monat === soll.periode_monat &&
         z.periode_jahr === soll.periode_jahr
     );
+    const totalBezahlt = zahlungenFuerPeriode.reduce((sum, z) => sum + Number(z.betrag), 0);
+    const sollBetrag = Number(soll.betrag);
+    const bezahlt = totalBezahlt >= sollBetrag * 0.99; // Allow minor rounding differences
     if (bezahlt) { übersprungen++; continue; }
 
     // Calculate days overdue

@@ -246,7 +246,8 @@ function drawMultiline(
 }
 
 function chf(value: number) {
-  return Number(value || 0).toLocaleString('de-CH', {
+  if (value === undefined || value === null) return "0.00";
+  return value.toLocaleString('de-CH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { requireAdminOrVerwalter } from '@/lib/supabase/admin';
+import { ALLOWED_ERHOEHUNG_FIELDS } from '@/lib/constants';
 import { redirect } from 'next/navigation';
 
 // ============================================================
@@ -16,6 +18,8 @@ export async function erstelleErhoehung(formData: FormData) {
   if (!user) {
     redirect('/auth/login');
   }
+
+  await requireAdminOrVerwalter(supabase, user.id);
 
   const liegenschaft_id = formData.get('liegenschaft_id');
   const grund = formData.get('grund');
@@ -104,10 +108,16 @@ export async function aktualisiereErhoehung(
   updates: Record<string, any>
 ): Promise<void> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
 
+  const filtered = Object.fromEntries(
+    ALLOWED_ERHOEHUNG_FIELDS.filter(k => k in updates).map(k => [k, updates[k]])
+  );
   const { error } = await supabase
     .from('mietzins_erhoehungen')
-    .update(updates)
+    .update(filtered)
     .eq('id', id);
 
   if (error) {
@@ -125,6 +135,11 @@ export async function speichereUndBerechneErhoehung(
   id: string,
   formData: FormData
 ): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const investitionTotal = Number(formData.get('investition_total') || 0);
   const foerderbeitraege = Number(formData.get('foerderbeitraege') || 0);
   const sonstigeKosten = Number(formData.get('sonstige_kosten') || 0);
@@ -150,8 +165,6 @@ export async function speichereUndBerechneErhoehung(
     nettoInvestition * (kapitalisierungssatz / 100);
 
   const monatTotal = jahressatzTotal / 12;
-
-  const supabase = await createClient();
 
   const { error: updateError } = await supabase
     .from('mietzins_erhoehungen')
@@ -221,6 +234,9 @@ export async function speichereUndBerechneErhoehung(
 // ============================================================
 export async function neuBerechnen(id: string): Promise<void> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
 
   const { data, error } = await supabase
     .from('mietzins_erhoehungen')
@@ -262,6 +278,9 @@ export async function setzeBeheizt(
   beheizt: boolean
 ): Promise<void> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
 
   const { error } = await supabase
     .from('mietzins_erhoehung_positionen')
@@ -279,6 +298,9 @@ export async function setzeBeheizt(
 // ============================================================
 export async function loescheErhoehung(id: string): Promise<void> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
 
   await supabase
     .from('mietzins_erhoehung_positionen')

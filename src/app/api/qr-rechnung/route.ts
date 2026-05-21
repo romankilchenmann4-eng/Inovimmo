@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import QRCode from "qrcode";
 
+export const dynamic = "force-dynamic";
+
 export interface QRRechnungInput {
   // Empfänger (Zahlungsempfänger = Verwalter)
   empfaenger_name: string;

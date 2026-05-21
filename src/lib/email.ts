@@ -39,7 +39,7 @@ function baseTemplate(content: string, preheader = "") {
           <!-- Footer -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB;">
             <tr><td style="color:#9CA3AF;font-size:11px;text-align:center;">
-              © 2026 Inovimmo · Zürich, Schweiz<br>
+              © ${new Date().getFullYear()} Inovimmo · Zürich, Schweiz<br>
               <a href="${BASE_URL}" style="color:#1D6EE0;text-decoration:none;">inovimmo.ch</a>
             </td></tr>
           </table>

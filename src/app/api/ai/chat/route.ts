@@ -83,30 +83,37 @@ Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
     { role: "user", content: message.trim() },
   ];
 
-  const response = await fetch(`${baseUrl}/api/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gemma3:4b",
-      messages,
-      stream: false,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gemma3:4b",
+        messages,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    return NextResponse.json(
-      { error: data?.error?.message ?? "KI-Antwort fehlgeschlagen." },
-      { status: response.status }
-    );
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data?.error?.message ?? "KI-Antwort fehlgeschlagen." },
+        { status: response.status }
+      );
+    }
+
+    // Ollama API returns { message: { role, content }, done: true }
+    return NextResponse.json({
+      reply: data.message?.content ?? "Ich konnte keine Antwort generieren.",
+    });
+  } finally {
+    clearTimeout(timeout);
   }
-
-  // Ollama API returns { message: { role, content }, done: true }
-  return NextResponse.json({
-    reply: data.message?.content ?? "Ich konnte keine Antwort generieren.",
-  });
 }

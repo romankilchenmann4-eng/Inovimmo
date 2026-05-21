@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       password: process.env.HOSTPOINT_FTP_PASS,
       secure: true,
       secureOptions: {
-        rejectUnauthorized: false, // Für selbstsignierte Zertifikate
+        rejectUnauthorized: process.env.NODE_ENV === "production",
       },
     });
 

@@ -87,13 +87,14 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id fehlt" }, { status: 400 });
 
-  const { error } = await supabase
+  const { count, error } = await supabase
     .from("offerten")
-    .update({ status: "zurueckgezogen" })
+    .update({ status: "zurueckgezogen" }, { count: "exact" })
     .eq("id", id)
     .eq("dienstleister_id", user.id)
     .eq("status", "eingegangen");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!count || count === 0) return NextResponse.json({ error: "Offerte nicht gefunden oder bereits zurückgezogen" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

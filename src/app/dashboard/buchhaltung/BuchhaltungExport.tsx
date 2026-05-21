@@ -32,6 +32,7 @@ export default function BuchhaltungExport({ escrows, nebkosten }: { escrows: Esc
     a.href = url;
     a.download = `inovimmo_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
     toast.success("CSV exportiert — bereit für Excel / Abacus / Bexio");
   }
 
@@ -57,6 +58,7 @@ export default function BuchhaltungExport({ escrows, nebkosten }: { escrows: Esc
     a.href = url;
     a.download = `inovimmo_bexio_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
     toast.success("Bexio-Format exportiert!");
   }
 
@@ -68,6 +70,7 @@ export default function BuchhaltungExport({ escrows, nebkosten }: { escrows: Esc
     a.href = url;
     a.download = `inovimmo_data_${new Date().toISOString().split("T")[0]}.json`;
     a.click();
+    URL.revokeObjectURL(url);
     toast.success("JSON exportiert!");
   }
 

@@ -297,9 +297,9 @@ export function berechneAbrechnungen(
       };
     });
 
-    // Calculate akonto for this apartment
+    // Calculate akonto for this apartment (filter by wohnung_id)
     const wohnungAkonto = akontoBuchungen
-      .filter((b) => b.betrag > 0) // Only actual payments
+      .filter((b) => b.wohnung_id === wohnung.id && b.betrag > 0)
       .reduce((sum, b) => sum + b.betrag, 0);
 
     // Sum up costs (only umlagefaehig)
@@ -393,7 +393,7 @@ export function pruefePflichtangaben(abrechnung: Partial<NKAbrechnung>): Pflicht
     },
     {
       pflichtangabe: "Saldo (Nachzahlung/Guthaben)",
-      vorhanden: abrechnung.nachzahlung !== undefined && abrechnung.nachzahlung !== null,
+      vorhanden: abrechnung.differenz !== undefined && abrechnung.differenz !== null,
       hinweis: null,
     },
     {

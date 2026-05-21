@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Profile } from "@/types";
@@ -11,6 +12,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/tickets":          "Tickets",
   "/dashboard/offerten":         "Offerten & Aufträge",
   "/dashboard/escrow":           "Escrow & Zahlung",
+  "/dashboard/mieterspiegel":    "Mieterspiegel",
   "/dashboard/nebkosten":        "Nebenkostenabrechnung",
   "/dashboard/mieter":           "Meine Wohnung",
   "/dashboard/dienstleister":    "Mein Betrieb",
@@ -26,7 +28,7 @@ interface TopbarProps {
 export default function Topbar({ profile, onMenuToggle }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const title = PAGE_TITLES[pathname] ?? "Inovimmo";
   const today = new Date().toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" });

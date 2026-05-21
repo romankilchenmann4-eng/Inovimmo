@@ -52,7 +52,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     const alteMiete = Number(p.miete_alt || 0);
     const erhoehung = Number(p.erhoehung_monatlich || p.erhoehung_betrag || 0);
     const neueMiete = Number(p.miete_neu || 0);
-    const nebenkosten = Number(p.nebenkosten_neu || p.nebenkosten_alt || 0);
+    const nebenkosten = Number(p.nebenkosten_neu ?? p.nebenkosten_alt ?? 0);
     const neueBruttomiete = neueMiete + nebenkosten;
 
     return [
@@ -75,7 +75,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     )
     .join('\n');
 
-  return new NextResponse(csv, {
+  return new NextResponse("﻿" + csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="mietzinserhoehung-${id}.csv"`,

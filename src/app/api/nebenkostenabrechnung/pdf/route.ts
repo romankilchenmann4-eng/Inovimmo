@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     p1,
     Number(abrechnung.kosten_total || 0),
     Number(abrechnung.akonto_total || 0),
-    Number(abrechnung.differenz ?? abrechnung.nachzahlung ?? 0),
+    Number(abrechnung.differenz ?? 0),
     y,
     fontR,
     fontB
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     p1,
     bankkonto ? { iban: bankkonto.iban, bank_name: bankkonto.bank_name } : null,
     abrechnung.zahlungsfrist ? new Date(abrechnung.zahlungsfrist).toLocaleDateString("de-CH") : "–",
-    Number(abrechnung.differenz ?? abrechnung.nachzahlung ?? 0),
+    Number(abrechnung.differenz ?? 0),
     y,
     fontR,
     fontB

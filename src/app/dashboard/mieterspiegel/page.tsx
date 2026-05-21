@@ -56,7 +56,6 @@ export default function MieterspiegelPage() {
   const [selectedLieg, setSelectedLieg] = useState("");
   const [wohnungen, setWohnungen] = useState<Wohnung[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [isAdmin, setIsAdmin] = useState(false);
 
   const loadLiegenschaften = useCallback(async () => {
@@ -81,6 +80,7 @@ export default function MieterspiegelPage() {
 
     const { data, error } = await query;
     if (error) console.error("liegenschaften query error:", error);
+
     setLiegenschaften(data ?? []);
     if (data?.length) setSelectedLieg(data[0].id);
     setLoading(false);
@@ -94,15 +94,16 @@ export default function MieterspiegelPage() {
         id, bezeichnung, whg_nr, etage, zimmer, flaeche_m2, nettomiete,
         nebenkosten_akonto, status, wohnungstyp, beheizt,
         verteilschluessel_prozent, position,
-        mietverhaeltnisse(
+        mietverhaeltnisse!inner(
           mieter_id, ist_hauptperson,
-          mieter:mieter(vorname, nachname, email, telefon_mobil)
+          mieter:mieter!inner(vorname, nachname, email, telefon_mobil)
         )
       `)
       .eq("liegenschaft_id", liegId)
       .order("whg_nr");
 
     if (error) console.error("wohnungen query error:", error);
+
     setWohnungen((data ?? []) as unknown as Wohnung[]);
     setLoading(false);
   }, [supabase]);

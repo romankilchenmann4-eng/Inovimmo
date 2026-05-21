@@ -56,6 +56,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(summary);
   }
 
+  // Batch-fetch all verwalter profiles to avoid N+1 queries
+  const verwalterIds = [...new Set(
+    ablaufend
+      .map((mv: any) => (mv.wohnung as any)?.liegenschaft?.verwalter_id)
+      .filter(Boolean)
+  )];
+  const { data: verwalterProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .in("id", verwalterIds);
+  const profileMap = new Map((verwalterProfiles ?? []).map((p: any) => [p.id, p]));
+
   let verarbeitet = 0;
 
   for (const mv of ablaufend) {
@@ -67,13 +79,9 @@ export async function POST(req: NextRequest) {
 
     if (!wohnung?.liegenschaft?.verwalter_id) continue;
 
-    // Get verwalter email
-    const { data: verwalterProfile } = await supabase
-      .from("profiles")
-      .select("full_name, email")
-      .eq("id", wohnung.liegenschaft.verwalter_id)
-      .single();
+    const verwalterProfile = profileMap.get(wohnung.liegenschaft.verwalter_id);
 
+    let emailSent = false;
     if (verwalterProfile?.email) {
       try {
         await sendVertragAblauf({
@@ -85,16 +93,19 @@ export async function POST(req: NextRequest) {
           mietende: mv.mietende as string,
           mietbeginn: mv.mietbeginn as string,
         });
+        emailSent = true;
       } catch (emailErr) {
         console.error("Vertrag-reminder email error:", emailErr);
       }
     }
 
-    // Mark reminder as sent
-    await supabase
-      .from("mietverhaeltnisse")
-      .update({ ablauf_reminder_sent: true })
-      .eq("id", mv.id);
+    // Only mark as sent if email was actually delivered
+    if (emailSent) {
+      await supabase
+        .from("mietverhaeltnisse")
+        .update({ ablauf_reminder_sent: true })
+        .eq("id", mv.id);
+    }
 
     verarbeitet++;
   }

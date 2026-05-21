@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from "pdf-lib";
 
+export const dynamic = "force-dynamic";
+
 export interface MietvertragWohnraumInput {
   // Vermieter
   vermieter_name: string;
@@ -74,8 +76,8 @@ const LINE_GRAY = rgb(0.75, 0.75, 0.75);
 const FILL_BG = rgb(0.95, 0.97, 1.0);
 
 function chf(n?: number): string {
-  if (!n) return "";
-  return n.toLocaleString("de-CH", { minimumFractionDigits: 2 });
+  if (n === undefined || n === null) return "0.00";
+  return n.toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function drawLine(page: PDFPage, x1: number, y: number, x2: number, thickness = 0.5, color = LINE_GRAY) {

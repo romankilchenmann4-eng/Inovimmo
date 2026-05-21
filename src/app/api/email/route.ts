@@ -8,6 +8,7 @@ import {
   sendTicketStatusUpdate,
   sendWillkommen,
 } from "@/lib/email";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,10 @@ const handlers = {
 type EmailType = keyof typeof handlers;
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ sent: false, error: "RESEND_API_KEY fehlt." }, { status: 503 });
   }

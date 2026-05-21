@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminOrVerwalter } from "@/lib/supabase/admin";
 import type {
   NKKategorie,
   VerteilschluesselTyp,
@@ -11,6 +11,7 @@ import type {
   GemischPosition,
 } from "./types";
 import { berechneAbrechnungen, berechneAkontoTotal, roundCHF } from "./calc";
+import { ALLOWED_POSITION_FIELDS, ALLOWED_VORLAGE_FIELDS } from "@/lib/constants";
 
 // ============================================================
 // ABRECHNUNGEN ERSTELLEN
@@ -133,7 +134,7 @@ export async function erstelleAbrechnungen(
   // Load akonto buchungen
   const { data: buchungen } = await supabase
     .from("buchungen")
-    .select("id, betrag, valuta, periode_monat, periode_jahr")
+    .select("id, betrag, valuta, periode_monat, periode_jahr, wohnung_id")
     .eq("liegenschaft_id", liegenschaft_id)
     .in("typ", ["nk_soll", "nk_rueckerstattung"]);
 
@@ -150,6 +151,7 @@ export async function erstelleAbrechnungen(
     wohnungen: wohnungenMitMietern,
     akontoBuchungen: (buchungen ?? []).map((b: any) => ({
       buchung_id: b.id,
+      wohnung_id: b.wohnung_id,
       betrag: Number(b.betrag || 0),
       valuta: b.valuta,
       periode_monat: b.periode_monat,
@@ -232,6 +234,10 @@ export async function speichereZaehlerstand(
   stand_endjahr: number
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const { error } = await supabase
     .from("nk_zaehler")
     .update({ stand_vorjahr, stand_endjahr, updated_at: new Date().toISOString() })
@@ -252,6 +258,10 @@ export async function erstelleZaehler(
   }
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const { data, error } = await supabase
     .from("nk_zaehler")
     .insert({
@@ -269,6 +279,10 @@ export async function erstelleZaehler(
 
 export async function loescheZaehler(zaehler_id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const { error } = await supabase
     .from("nk_zaehler")
     .delete()
@@ -287,6 +301,10 @@ export async function speichereVerteilschluessel(
   gemischt?: GemischPosition[]
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const { error } = await supabase
     .from("nk_verteilschluessel")
     .upsert(
@@ -320,6 +338,9 @@ export async function speicherePosition(
   }
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
   const { data, error } = await supabase
     .from("nebenkostenpositionen")
     .insert({
@@ -341,9 +362,16 @@ export async function aktualisierePosition(
   updates: Record<string, any>
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
+  const filtered = Object.fromEntries(
+    ALLOWED_POSITION_FIELDS.filter(k => k in updates).map(k => [k, updates[k]])
+  );
   const { error } = await supabase
     .from("nebenkostenpositionen")
-    .update(updates)
+    .update(filtered)
     .eq("id", position_id);
 
   if (error) throw new Error(error.message);
@@ -351,6 +379,10 @@ export async function aktualisierePosition(
 
 export async function loeschePosition(position_id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
   const { error } = await supabase
     .from("nebenkostenpositionen")
     .delete()
@@ -364,10 +396,13 @@ export async function loeschePosition(position_id: string) {
 // ============================================================
 export async function setzeStatus(abrechnung_id: string, status: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
   const updates: Record<string, any> = { status };
 
   if (status === "versendet") {
-    updates.versendet_an = new Date().toISOString();
+    updates.versendet_at = new Date().toISOString();
   }
   if (status === "bezahlt") {
     updates.bezahlt_at = new Date().toISOString();
@@ -383,6 +418,9 @@ export async function setzeStatus(abrechnung_id: string, status: string) {
 
 export async function markiereVersendet(abrechnung_id: string, versendet_an: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
   const { error } = await supabase
     .from("nebenkostenabrechnungen")
     .update({
@@ -397,6 +435,9 @@ export async function markiereVersendet(abrechnung_id: string, versendet_an: str
 
 export async function markiereBezahlt(abrechnung_id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
   const { error } = await supabase
     .from("nebenkostenabrechnungen")
     .update({
@@ -416,6 +457,9 @@ export async function generiereBegleitschreibenVorlage(
   ton: BegleitschreibenTon
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
 
   // Check if template already exists
   const { data: existing } = await supabase
@@ -487,9 +531,16 @@ export async function speichereBegleitschreibenVorlage(
   updates: Record<string, any>
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
+
+  const filtered = Object.fromEntries(
+    ALLOWED_VORLAGE_FIELDS.filter(k => k in updates).map(k => [k, updates[k]])
+  );
   const { error } = await supabase
     .from("nk_abrechnung_vorlagen")
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...filtered, updated_at: new Date().toISOString() })
     .eq("id", vorlage_id);
 
   if (error) throw new Error(error.message);
@@ -505,6 +556,9 @@ export async function speichereDokument(
   pdf_url?: string
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Nicht autorisiert");
+  await requireAdminOrVerwalter(supabase, user.id);
   const { data, error } = await supabase
     .from("nk_abrechnung_dokumente")
     .insert({

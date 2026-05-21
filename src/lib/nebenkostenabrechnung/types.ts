@@ -105,7 +105,6 @@ export interface NKAbrechnung {
   akonto_total: number;
   kosten_total: number;
   differenz: number;
-  nachzahlung: number;
   total_kosten: number;
   total_vorschuss: number;
   status: NKAbrechnungStatus;
@@ -184,6 +183,7 @@ export interface WohnungMitMietern {
 
 export interface AkontoBuchung {
   buchung_id: string;
+  wohnung_id: string;
   betrag: number;
   valuta: string;
   periode_monat: number;
