@@ -11,8 +11,8 @@ export type Profile = {
   adresse?: string;
   plz?: string;
   ort?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type Liegenschaft = {

@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inovimmo — Software & Liegenschaftsverwaltung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0D1B2A;
+    --navy-mid: #162236;
+    --navy-soft: #1E2F44;
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-pale: #F5E9C8;
+    --cream: #F9F5EE;
+    --cream-dark: #EDE8DF;
+    --text-dark: #0D1B2A;
+    --text-mid: #3A4A5C;
+    --text-soft: #6B7A8D;
+    --white: #FFFFFF;
+    --border: rgba(13,27,42,0.1);
+    --border-gold: rgba(201,168,76,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(249,245,238,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--navy);
+    text-decoration: none;
+    letter-spacing: -0.3px;
+  }
+
+  .nav-logo span {
+    color: var(--gold);
+  }
+
+  .nav-links {
+    display: flex; gap: 2rem; list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    text-decoration: none;
+    letter-spacing: 0.01em;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--navy); }
+
+  .nav-actions {
+    display: flex; gap: 12px; align-items: center;
+  }
+
+  .btn-ghost {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 400;
+    color: var(--text-mid);
+    background: none; border: none; cursor: pointer;
+    padding: 8px 16px;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .btn-ghost:hover { color: var(--navy); }
+
+  .btn-primary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    color: var(--white);
+    background: var(--navy);
+    border: none; cursor: pointer;
+    padding: 9px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover { background: var(--navy-soft); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    padding: 120px 5% 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(201,168,76,0.12);
+    border: 1px solid var(--border-gold);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 32px;
+    width: fit-content;
+  }
+
+  .hero-tag-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: inline-block;
+  }
+
+  .hero-heading {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(44px, 6vw, 84px);
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--navy);
+    max-width: 780px;
+    margin-bottom: 28px;
+  }
+
+  .hero-heading em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 1.8vw, 19px);
+    font-weight: 300;
+    color: var(--text-mid);
+    max-width: 560px;
+    line-height: 1.65;
+    margin-bottom: 48px;
+  }
+
+  /* ── DUAL CHOICE HERO CARDS ── */
+  .hero-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 820px;
+    margin-bottom: 60px;
+  }
+
+  .hero-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+
+  .hero-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+
+  .hero-card-tag {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+
+  .hero-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--navy);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+
+  .hero-card p {
+    font-size: 14px;
+    color: var(--text-soft);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .hero-card-arrow {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .hero-card-arrow::after {
+    content: '→';
+    transition: transform 0.2s;
+  }
+
+  .hero-card:hover .hero-card-arrow::after {
+    transform: translateX(4px);
+  }
+
+  .hero-card.featured {
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+
+  .hero-card.featured .hero-card-tag { color: var(--gold-light); }
+  .hero-card.featured h3 { color: var(--white); }
+  .hero-card.featured p { color: rgba(255,255,255,0.6); }
+  .hero-card.featured .hero-card-arrow { color: var(--gold-light); }
+
+  /* ── STATS ── */
+  .hero-stats {
+    display: flex; gap: 48px;
+    border-top: 1px solid var(--border);
+    padding-top: 36px;
+    max-width: 820px;
+  }
+
+  .stat-item {}
+  .stat-number {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--navy);
+    display: block;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-top: 2px;
+    display: block;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .section-heading {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--navy);
+    margin-bottom: 20px;
+  }
+
+  .section-heading em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .section-sub {
+    font-size: 17px;
+    font-weight: 300;
+    color: var(--text-mid);
+    line-height: 1.65;
+    max-width: 520px;
+  }
+
+  /* ── DIVIDER / SPLIT ── */
+  .divider-line {
+    height: 1px;
+    background: var(--border);
+    margin: 0 5%;
+  }
+
+  /* ── SOFTWARE SECTION ── */
+  .section-software {
+    padding: 100px 5%;
+    background: var(--white);
+  }
+
+  .software-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+    margin-bottom: 72px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .feature-cell {
+    background: var(--white);
+    padding: 28px 24px;
+    transition: background 0.2s;
+  }
+
+  .feature-cell:hover { background: var(--cream); }
+
+  .feature-icon {
+    width: 36px; height: 36px;
+    background: var(--cream);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .feature-cell h4 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .feature-cell p {
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.6;
+  }
+
+  .feature-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 100px;
+    margin-top: 10px;
+  }
+
+  .badge-free {
+    background: rgba(15, 110, 86, 0.1);
+    color: #0F6E56;
+  }
+
+  .badge-paid {
+    background: rgba(201,168,76,0.12);
+    color: #7A5F1A;
+  }
+
+  .badge-unique {
+    background: rgba(13,27,42,0.08);
+    color: var(--navy);
+  }
+
+  /* ── SOFTWARE PRICING ── */
+  .software-pricing {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .price-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .price-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+
+  .price-card.highlight {
+    border-color: var(--navy);
+    background: var(--navy);
+  }
+
+  .price-card.highlight .price-tier { color: var(--gold); }
+  .price-card.highlight .price-name { color: var(--white); }
+  .price-card.highlight .price-amount { color: var(--white); }
+  .price-card.highlight .price-period { color: rgba(255,255,255,0.5); }
+  .price-card.highlight .price-limit { color: rgba(255,255,255,0.5); }
+  .price-card.highlight .price-features li { color: rgba(255,255,255,0.7); }
+  .price-card.highlight .price-features li::before { color: var(--gold); }
+  .price-card.highlight .btn-price { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  .price-card.highlight .btn-price:hover { background: var(--gold-light); border-color: var(--gold-light); }
+
+  .price-tier {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  .price-name {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+
+  .price-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--navy);
+    line-height: 1;
+  }
+
+  .price-period {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 4px;
+  }
+
+  .price-limit {
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-bottom: 20px;
+  }
+
+  .price-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .price-features li {
+    font-size: 13px;
+    color: var(--text-mid);
+    display: flex; align-items: flex-start; gap: 8px;
+    line-height: 1.45;
+  }
+
+  .price-features li::before {
+    content: '✓';
+    color: #0F6E56;
+    font-size: 12px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .btn-price {
+    display: block;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 11px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    color: var(--navy);
+    background: none;
+  }
+
+  .btn-price:hover {
+    border-color: var(--navy);
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  @media (max-width: 900px) {
+    .software-pricing { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .software-pricing { grid-template-columns: 1fr; }
+  }
+
+  /* ── SERVICE SECTION ── */
+  .section-service {
+    padding: 100px 5%;
+    background: var(--navy);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-service::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .service-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+    margin-bottom: 72px;
+  }
+
+  .service-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .service-heading {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .service-heading em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .service-sub {
+    font-size: 17px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.65;
+  }
+
+  .service-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .service-item {
+    padding: 24px 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: flex-start; gap: 16px;
+    transition: background 0.2s;
+  }
+
+  .service-item:last-child { border-bottom: none; }
+  .service-item:hover { background: rgba(255,255,255,0.04); }
+
+  .service-item-num {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--gold);
+    opacity: 0.7;
+    min-width: 24px;
+    margin-top: 2px;
+  }
+
+  .service-item-content h4 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .service-item-content p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+  }
+
+  /* ── SERVICE PACKAGES ── */
+  .service-packages {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .pkg-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 28px 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .pkg-card:hover {
+    border-color: rgba(201,168,76,0.4);
+    background: rgba(201,168,76,0.04);
+  }
+
+  .pkg-card.highlight {
+    border-color: rgba(201,168,76,0.5);
+    background: rgba(201,168,76,0.07);
+  }
+
+  .pkg-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  .pkg-name {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .pkg-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.55;
+    margin-bottom: 20px;
+  }
+
+  .pkg-price {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .pkg-price-note {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 20px;
+  }
+
+  .pkg-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .pkg-features li {
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    display: flex; align-items: flex-start; gap: 8px;
+    line-height: 1.45;
+  }
+
+  .pkg-features li::before {
+    content: '✓';
+    color: var(--gold);
+    font-size: 12px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .btn-service {
+    display: block;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 11px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8);
+    background: none;
+  }
+
+  .btn-service:hover {
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  .btn-service.gold {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--navy);
+  }
+
+  .btn-service.gold:hover {
+    background: var(--gold-light);
+    border-color: var(--gold-light);
+  }
+
+  /* ── PROCESS ── */
+  .section-process {
+    padding: 100px 5%;
+    background: var(--cream);
+  }
+
+  .process-header {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 72px;
+  }
+
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    position: relative;
+  }
+
+  .process-steps::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .process-step {
+    text-align: center;
+    padding: 0 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-circle {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 22px;
+    position: relative;
+  }
+
+  .step-circle.gold-ring {
+    border-color: var(--gold);
+  }
+
+  .step-num {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .step-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-soft);
+    line-height: 1.55;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .section-testimonials {
+    padding: 80px 5%;
+    background: var(--white);
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 56px;
+  }
+
+  .testimonial-card {
+    background: var(--cream);
+    border-radius: 14px;
+    padding: 28px 24px;
+  }
+
+  .stars {
+    color: var(--gold);
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+
+  .testimonial-text {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--text-dark);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+  }
+
+  .testimonial-author {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .author-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gold);
+  }
+
+  .author-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+  }
+
+  .author-role {
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  .testimonial-source {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    display: inline-block;
+  }
+
+  .source-sw { background: rgba(15,110,86,0.1); color: #0F6E56; }
+  .source-svc { background: rgba(201,168,76,0.12); color: #7A5F1A; }
+
+  /* ── COMPARISON ── */
+  .section-compare {
+    padding: 80px 5%;
+    background: var(--cream);
+  }
+
+  .compare-table-wrap {
+    overflow-x: auto;
+    margin-top: 48px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream);
+  }
+
+  th.col-us {
+    background: var(--navy);
+    color: var(--gold-light);
+    text-align: center;
+  }
+
+  td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-mid);
+    font-size: 14px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td.col-feature { font-weight: 500; color: var(--navy); }
+
+  td.col-us {
+    text-align: center;
+    background: rgba(13,27,42,0.02);
+    font-size: 16px;
+  }
+
+  td.col-other { text-align: center; font-size: 16px; }
+
+  .check-yes { color: #0F6E56; }
+  .check-partial { color: #BA7517; }
+  .check-no { color: #E24B4A; }
+
+  /* ── CTA ── */
+  .section-cta {
+    padding: 100px 5%;
+    background: var(--navy);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-cta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+
+  .cta-heading {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 300;
+    color: var(--white);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-heading em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .cta-sub {
+    font-size: 17px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 48px;
+  }
+
+  .cta-buttons {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .btn-cta-primary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 500;
+    background: var(--gold);
+    color: var(--navy);
+    border: none; cursor: pointer;
+    padding: 14px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-cta-primary:hover { background: var(--gold-light); }
+
+  .btn-cta-secondary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 400;
+    background: none;
+    color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+    padding: 14px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-cta-secondary:hover {
+    border-color: rgba(255,255,255,0.5);
+    color: var(--white);
+  }
+
+  .cta-note {
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy-mid);
+    padding: 60px 5% 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 48px;
+  }
+
+  .footer-brand .nav-logo {
+    color: var(--white);
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .footer-brand p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  .footer-col h5 {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 16px;
+  }
+
+  .footer-col ul { list-style: none; }
+  .footer-col li { margin-bottom: 10px; }
+  .footer-col a {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--gold-light); }
+
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+
+  .footer-bottom p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .footer-badge {
+    display: flex; gap: 16px;
+  }
+
+  .footer-badge span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero > * {
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .hero > *:nth-child(1) { animation-delay: 0.05s; }
+  .hero > *:nth-child(2) { animation-delay: 0.15s; }
+  .hero > *:nth-child(3) { animation-delay: 0.25s; }
+  .hero > *:nth-child(4) { animation-delay: 0.35s; }
+  .hero > *:nth-child(5) { animation-delay: 0.45s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 4%; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 4% 60px; }
+    .hero-cards { grid-template-columns: 1fr; max-width: 100%; }
+    .software-header { grid-template-columns: 1fr; gap: 40px; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .service-header { grid-template-columns: 1fr; gap: 40px; }
+    .service-packages { grid-template-columns: 1fr; }
+    .process-steps { grid-template-columns: 1fr 1fr; gap: 24px; }
+    .process-steps::before { display: none; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .hero-stats { flex-wrap: wrap; gap: 28px; }
+  }
+
+  @media (max-width: 600px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .section-software, .section-service, .section-process, .section-testimonials, .section-compare, .section-cta { padding: 70px 4%; }
+    .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">inov<span>immo</span></a>
+  <ul class="nav-links">
+    <li><a href="#software">Software</a></li>
+    <li><a href="#verwaltung">Verwaltungsservice</a></li>
+    <li><a href="#preise-software">Software-Preise</a></li>
+	    <li><a href="#preise">Service-Pakete</a></li>
+    <li><a href="#vergleich">Vergleich</a></li>
+    <li><a href="mailto:info@inovimmo.ch">Kontakt</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://app.inovimmo.ch/auth/login" class="btn-ghost">Einloggen</a>
+    <a href="https://app.inovimmo.ch/auth/register" class="btn-primary">Kostenlos starten →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="hero-tag-dot"></span>
+    Swiss PropTech 2026 · Zürich
+  </div>
+
+  <h1 class="hero-heading">
+    Immobilienverwaltung —<br>
+    <em>komplett neu</em> gedacht.
+  </h1>
+
+  <p class="hero-sub">
+    Inovimmo bietet zwei Wege: Verwalten Sie selbst mit unserer Plattform — kostenlos für bis zu 5 Wohnungen — oder übergeben Sie Ihre Liegenschaften an unser Expertenteam.
+  </p>
+
+  <div class="hero-cards">
+    <a href="#software" class="hero-card">
+      <div class="hero-card-tag">Für Selbstverwalter</div>
+      <h3>Software-Plattform</h3>
+      <p>Vollintegrierte Verwaltungssoftware für Schweizer Hausverwaltungen. Kostenlos starten, skalierbar wachsen.</p>
+      <div class="hero-card-arrow">Plattform entdecken</div>
+    </a>
+    <a href="#verwaltung" class="hero-card featured">
+      <div class="hero-card-tag">Für Eigentümer</div>
+      <h3>Verwaltung als Dienstleistung</h3>
+      <p>Wir übernehmen die komplette Liegenschaftsverwaltung für Sie — professionell, transparent, digital.</p>
+      <div class="hero-card-arrow">Service anfragen</div>
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <span class="stat-number">Ab CHF 0</span>
+      <span class="stat-label">Plattformkosten/Monat</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">2.4M</span>
+      <span class="stat-label">Mietwohnungen CH</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">100%</span>
+      <span class="stat-label">Schweizer Mietrecht</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">nDSG</span>
+      <span class="stat-label">Datenschutz-konform</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- SOFTWARE SECTION -->
+<section class="section-software" id="software">
+  <div class="software-header">
+    <div>
+      <div class="section-label">Plattform</div>
+      <h2 class="section-heading">Alles, was Sie<br><em>brauchen.</em></h2>
+      <p class="section-sub">Von der Wohnungsübersicht bis zur Nebenkostenabrechnung — vollständig digital, nach Schweizer Mietrecht, Kostenlos für bis zu 5 Wohnungen, skalierbar für jedes Portfolio.</p>
+      <br><br>
+      <a href="https://app.inovimmo.ch/auth/register" class="btn-primary" style="padding: 12px 24px; font-size: 15px; display: inline-block;">Kostenlos registrieren →</a>
+    </div>
+    <div>
+      <div class="features-grid">
+
+        <div class="feature-cell">
+          <div class="feature-icon">🏢</div>
+          <h4>Liegenschaftsverwaltung</h4>
+          <p>Objekte, Wohnungen, Mieter, Verträge — MWST-konform.</p>
+          <span class="feature-badge badge-free">Gratis</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">🎫</div>
+          <h4>Ticket-System</h4>
+          <p>Schäden melden, Handwerker ausschreiben — automatisch.</p>
+          <span class="feature-badge badge-free">Gratis</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">🔒</div>
+          <h4>Escrow-Zahlung</h4>
+          <p>Treuhandabwicklung — Korruption strukturell unmöglich.</p>
+          <span class="feature-badge badge-unique">Einzigartig CH</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">🤖</div>
+          <h4>KI-Assistent</h4>
+          <p>Claude-basierter Chat für Verwalter und Mieter.</p>
+          <span class="feature-badge badge-free">Gratis</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">📑</div>
+          <h4>NK-Abrechnung</h4>
+          <p>Vollautomatisch, MWST-konform, per Klick versenden.</p>
+          <span class="feature-badge badge-paid">CHF 8/Whg./Jahr</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">🔑</div>
+          <h4>Digitale Übergabe</h4>
+          <p>Tablet-Protokoll mit Fotos und digitaler Unterschrift.</p>
+          <span class="feature-badge badge-paid">CHF 12/Übergabe</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">🔍</div>
+          <h4>Mieter-Screening</h4>
+          <p>Betreibungsauszug, Bonität, ID — in einer Anfrage.</p>
+          <span class="feature-badge badge-paid">CHF 25/Check</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">📈</div>
+          <h4>KI-Mietpreisanalyse</h4>
+          <p>Marktpreise aus Homegate, ImmoScout in Echtzeit.</p>
+          <span class="feature-badge badge-paid">CHF 9/Monat</span>
+        </div>
+
+        <div class="feature-cell">
+          <div class="feature-icon">💼</div>
+          <h4>Buchhaltungs-Export</h4>
+          <p>Abacus, Bexio und Excel — MWST-konformer Export.</p>
+          <span class="feature-badge badge-free">Gratis</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SOFTWARE PRICING TIERS -->
+  <div id="preise-software" style="margin-top: 72px;">
+    <div class="section-label">Software-Pläne</div>
+    <h2 class="section-heading" style="font-size: clamp(28px, 3vw, 40px);">Skalieren Sie mit Ihrem <em>Portfolio.</em></h2>
+    <p class="section-sub" style="margin-bottom: 36px;">Kostenlos starten, bei Bedarf upgraden. Keine Kreditkarte, keine Mindestlaufzeit.</p>
+    <div class="software-pricing">
+
+      <div class="price-card">
+        <div class="price-tier">Einstieg</div>
+        <div class="price-name">Kostenlos</div>
+        <div class="price-amount">CHF 0</div>
+        <div class="price-period">für immer</div>
+        <div class="price-limit">Bis 5 Wohnungen</div>
+        <ul class="price-features">
+          <li>Liegenschaftsverwaltung</li>
+          <li>Ticket-System</li>
+          <li>KI-Assistent</li>
+          <li>Buchhaltungs-Export</li>
+          <li>Escrow-Zahlungen</li>
+        </ul>
+        <a href="https://app.inovimmo.ch/auth/register" class="btn-price">Kostenlos starten</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-name">Starter</div>
+        <div class="price-amount">CHF 29</div>
+        <div class="price-period">/Monat</div>
+        <div class="price-limit">Bis 10 Wohnungen</div>
+        <ul class="price-features">
+          <li>Alles aus Kostenlos</li>
+          <li>Mietvertrag PDF</li>
+          <li>QR-Rechnung</li>
+          <li>Mahnwesen</li>
+          <li>E-Mail-Benachrichtigungen</li>
+        </ul>
+        <a href="https://app.inovimmo.ch/auth/register" class="btn-price">Jetzt abonnieren</a>
+      </div>
+
+      <div class="price-card highlight">
+        <div class="price-tier">Empfohlen</div>
+        <div class="price-name">Professional</div>
+        <div class="price-amount">CHF 79</div>
+        <div class="price-period">/Monat</div>
+        <div class="price-limit">Bis 50 Wohnungen</div>
+        <ul class="price-features">
+          <li>Alles aus Starter</li>
+          <li>KI-Mietpreisanalyse</li>
+          <li>Jahresbericht PDF</li>
+          <li>Mieter-Screening</li>
+          <li>Escrow & Stripe</li>
+          <li>Prioritäts-Support</li>
+        </ul>
+        <a href="https://app.inovimmo.ch/auth/register" class="btn-price">Jetzt abonnieren</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-tier">Enterprise</div>
+        <div class="price-name">Enterprise</div>
+        <div class="price-amount">CHF 199</div>
+        <div class="price-period">/Monat</div>
+        <div class="price-limit">Unbegrenzte Wohnungen</div>
+        <ul class="price-features">
+          <li>Alles aus Professional</li>
+          <li>STWE-Modul</li>
+          <li>Eigentümer-Portal</li>
+          <li>API-Zugang</li>
+          <li>Dedizierter Support</li>
+          <li>SLA 99.9%</li>
+        </ul>
+        <a href="https://app.inovimmo.ch/auth/register" class="btn-price">Jetzt abonnieren</a>
+      </div>
+
+    </div>
+    <p style="font-size: 13px; color: var(--text-soft); margin-top: 20px;">Alle Preise in CHF inkl. MwSt. Monatliche Kündigung jederzeit möglich. Keine Kreditkarte für den kostenlosen Plan erforderlich.</p>
+  </div>
+
+</section>
+
+<div class="divider-line"></div>
+
+<!-- SERVICE SECTION -->
+<section class="section-service" id="verwaltung">
+  <div class="service-header">
+    <div>
+      <div class="service-label">Dienstleistung</div>
+      <h2 class="service-heading">Wir verwalten.<br>Sie <em>geniessen.</em></h2>
+      <p class="service-sub">
+        Übergeben Sie Ihre Liegenschaften in professionelle Hände. Unser erfahrenes Team übernimmt die vollständige Verwaltung — mit unserer eigenen Plattform im Rücken.
+      </p>
+    </div>
+    <div class="service-right">
+      <div class="service-item">
+        <span class="service-item-num">01</span>
+        <div class="service-item-content">
+          <h4>Mieterverwaltung & CRM</h4>
+          <p>Inserate, Besichtigungen, Mieterauswahl, Verträge, Kommunikation.</p>
+        </div>
+      </div>
+      <div class="service-item">
+        <span class="service-item-num">02</span>
+        <div class="service-item-content">
+          <h4>Mietzinsverwaltung</h4>
+          <p>Zahlungskontrolle, Mahnwesen, Indexierungen nach OR.</p>
+        </div>
+      </div>
+      <div class="service-item">
+        <span class="service-item-num">03</span>
+        <div class="service-item-content">
+          <h4>Technisches Gebäudemanagement</h4>
+          <p>Reparaturaufträge, Handwerkerkoordination via Escrow-Plattform.</p>
+        </div>
+      </div>
+      <div class="service-item">
+        <span class="service-item-num">04</span>
+        <div class="service-item-content">
+          <h4>Nebenkostenabrechnung</h4>
+          <p>Jährliche NK-Abrechnung nach Schweizer Mietrecht, Art. 257a OR.</p>
+        </div>
+      </div>
+      <div class="service-item">
+        <span class="service-item-num">05</span>
+        <div class="service-item-content">
+          <h4>Wohnungsübergaben</h4>
+          <p>Digitale Protokolle, Kautionsabrechnung, rechtssichere Dokumentation.</p>
+        </div>
+      </div>
+      <div class="service-item">
+        <span class="service-item-num">06</span>
+        <div class="service-item-content">
+          <h4>Reporting & Eigentümerportal</h4>
+          <p>Monatliche Berichte, Erfolgsrechnung, Live-Einsicht jederzeit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PACKAGES -->
+  <div id="preise">
+    <div class="service-label" style="margin-bottom: 24px;">Verwaltungspakete</div>
+    <div class="service-packages">
+
+      <div class="pkg-card">
+        <div class="pkg-label">Einsteiger</div>
+        <div class="pkg-name">Basis</div>
+        <div class="pkg-desc">Für Privatvermieter mit 1–5 Wohnungen. Klare Betreuung, faire Konditionen.</div>
+        <div class="pkg-price">3.5%</div>
+        <div class="pkg-price-note">des Jahres-Mietzinses</div>
+        <ul class="pkg-features">
+          <li>Mieterverwaltung & Verträge</li>
+          <li>Zahlungskontrolle & Mahnwesen</li>
+          <li>Nebenkostenabrechnung (CHF 8/Whg.)</li>
+          <li>Eigentümerportal mit Live-Daten</li>
+          <li>E-Mail Support</li>
+        </ul>
+        <a href="mailto:info@inovimmo.ch?subject=Basis-Paket+anfragen" class="btn-service">Anfragen</a>
+      </div>
+
+      <div class="pkg-card highlight">
+        <div class="pkg-label">Beliebt</div>
+        <div class="pkg-name">Professional</div>
+        <div class="pkg-desc">Für Investoren mit 5–30 Wohnungen. Vollservice mit persönlichem Ansprechpartner.</div>
+        <div class="pkg-price">4.5%</div>
+        <div class="pkg-price-note">des Jahres-Mietzinses</div>
+        <ul class="pkg-features">
+          <li>Alles aus Basis-Paket</li>
+          <li>Technisches Gebäudemanagement</li>
+          <li>Digitale Wohnungsübergaben inklusive</li>
+          <li>Monatliches Reporting & Analyse</li>
+          <li>Persönlicher Verwalter</li>
+          <li>Telefon & Prioritäts-Support</li>
+        </ul>
+        <a href="mailto:info@inovimmo.ch?subject=Professional-Paket+anfragen" class="btn-service gold">Anfragen</a>
+      </div>
+
+      <div class="pkg-card">
+        <div class="pkg-label">Portfolios</div>
+        <div class="pkg-name">Enterprise</div>
+        <div class="pkg-desc">Für Genossenschaften, Family Offices & grosse Portfolios. Individuell verhandelbar.</div>
+        <div class="pkg-price">Auf Anfrage</div>
+        <div class="pkg-price-note">individuell nach Portfolio</div>
+        <ul class="pkg-features">
+          <li>Alles aus Professional-Paket</li>
+          <li>Dediziertes Verwaltungsteam</li>
+          <li>Erfolgsrechnung & Bilanz</li>
+          <li>API-Integration in Ihre Systeme</li>
+          <li>SLA-Garantien</li>
+          <li>Vor-Ort-Präsenz möglich</li>
+        </ul>
+        <a href="mailto:info@inovimmo.ch?subject=Enterprise+anfragen" class="btn-service">Kontakt aufnehmen</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="section-process">
+  <div class="process-header">
+    <div class="section-label">So läuft es ab</div>
+    <h2 class="section-heading">In <em>5 Schritten</em> zum Vollservice</h2>
+  </div>
+
+  <div class="process-steps">
+    <div class="process-step">
+      <div class="step-circle gold-ring">
+        🤝
+        <span class="step-num">1</span>
+      </div>
+      <div class="step-title">Erstgespräch</div>
+      <div class="step-desc">Kostenlose Analyse Ihrer Liegenschaften und Bedürfnisse.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-circle">
+        📋
+        <span class="step-num">2</span>
+      </div>
+      <div class="step-title">Angebot & Vertrag</div>
+      <div class="step-desc">Massgeschneidertes Angebot, transparenter Verwaltungsvertrag.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-circle">
+        🔄
+        <span class="step-num">3</span>
+      </div>
+      <div class="step-title">Übergabe</div>
+      <div class="step-desc">Wir übernehmen alle Unterlagen und Mieterbeziehungen nahtlos.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-circle">
+        📱
+        <span class="step-num">4</span>
+      </div>
+      <div class="step-title">Live-Portal</div>
+      <div class="step-desc">Echtzeit-Einsicht in alle Vorgänge — jederzeit, von überall.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-circle">
+        📊
+        <span class="step-num">5</span>
+      </div>
+      <div class="step-title">Monatliches Reporting</div>
+      <div class="step-desc">Klare Berichte, Kennzahlen und Renditeanalysen für Sie.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section-testimonials">
+  <div class="section-label" style="text-align:center;">Stimmen aus der Praxis</div>
+  <h2 class="section-heading" style="text-align:center; max-width: 100%;">Was unsere Kunden sagen</h2>
+
+  <div class="testimonials-grid">
+
+    <div class="testimonial-card">
+      <span class="testimonial-source source-sw">Software-Nutzer</span>
+      <div class="stars">★★★★★</div>
+      <p class="testimonial-text">Die NK-Abrechnung allein spart mir jedes Jahr zwei Wochen Arbeit. Endlich versteht jemand, wie Schweizer Hausverwaltung wirklich funktioniert.</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">MH</div>
+        <div>
+          <div class="author-name">Markus Huber</div>
+          <div class="author-role">Huber Immobilien GmbH, Zürich</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card">
+      <span class="testimonial-source source-svc">Verwaltungsservice</span>
+      <div class="stars">★★★★★</div>
+      <p class="testimonial-text">Ich wollte mich nicht mehr um jedes Ticket kümmern. Das Inovimmo-Team übernimmt alles — ich sehe es einfach im Portal und bekomme monatlich meinen Bericht.</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">SK</div>
+        <div>
+          <div class="author-name">Sabine Keller</div>
+          <div class="author-role">Privatinvestorin, 12 Wohnungen, Zürich</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card">
+      <span class="testimonial-source source-svc">Verwaltungsservice</span>
+      <div class="stars">★★★★★</div>
+      <p class="testimonial-text">Wir haben das Portfolio von der klassischen Verwaltung zu Inovimmo gewechselt. Die Transparenz durch das Eigentümerportal ist beeindruckend — kein anderer Anbieter bietet das.</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">RP</div>
+        <div>
+          <div class="author-name">Roland Pfister</div>
+          <div class="author-role">Genossenschaft Seefeld, 48 Wohnungen</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="section-compare" id="vergleich">
+  <div class="section-label">Marktvergleich</div>
+  <h2 class="section-heading">Inovimmo vs. <em>Wettbewerb</em></h2>
+  <p class="section-sub">Kein Anbieter in der Schweiz kombiniert Software-Plattform und Verwaltungsdienstleistung unter einem Dach.</p>
+
+  <div class="compare-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th class="col-us">Inovimmo</th>
+          <th>Fairwalter</th>
+          <th>PROPbase</th>
+          <th>Klassische Verwaltung</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-feature">Software-Plattform</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-yes">✓</td>
+          <td class="col-other check-yes">✓</td>
+          <td class="col-other check-no">✗</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Verwaltung als Dienstleistung</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-yes">✓</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Escrow-Zahlung</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-no">✗</td>
+        </tr>
+        <tr>
+          <td class="col-feature">KI-Assistent</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-no">✗</td>
+          <td class="col-other check-no">✗</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Eigentümerportal Live</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-partial">Teilw.</td>
+          <td class="col-other check-partial">Teilw.</td>
+          <td class="col-other check-no">✗</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Schweizer Mietrecht</td>
+          <td class="col-us check-yes">✓</td>
+          <td class="col-other check-yes">✓</td>
+          <td class="col-other check-yes">✓</td>
+          <td class="col-other check-yes">✓</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Monatliche Kosten Software</td>
+          <td class="col-us" style="color:#0F6E56; font-weight:500; font-size:14px;">Ab CHF 0</td>
+          <td class="col-other" style="font-size:13px;">CHF 89–299</td>
+          <td class="col-other" style="font-size:13px;">CHF 199+</td>
+          <td class="col-other check-no">–</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section-cta">
+  <div class="cta-label">Bereit loslegen</div>
+  <h2 class="cta-heading">Wählen Sie Ihren<br><em>eigenen Weg.</em></h2>
+  <p class="cta-sub">Software selbst nutzen oder Verwaltung abgeben — beides ist möglich.</p>
+  <div class="cta-buttons">
+    <a href="https://app.inovimmo.ch/auth/register" class="btn-cta-primary">Software starten — ab CHF 0/Monat</a>
+    <a href="mailto:info@inovimmo.ch?subject=Verwaltungsservice+anfragen" class="btn-cta-secondary">Verwaltungsservice anfragen</a>
+  </div>
+  <p class="cta-note">Keine Kreditkarte · Keine Mindestlaufzeit · Daten in der Schweiz</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#" class="nav-logo">inov<span style="color:var(--gold)">immo</span></a>
+      <p>Die Schweizer Plattform für Immobilienverwaltung — als Software und als Dienstleistung. Daten in der Schweiz, nDSG-konform.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Software</h5>
+      <ul>
+        <li><a href="#software">Funktionen</a></li>
+        <li><a href="#preise-software">Software-Pläne</a></li>
+	        <li><a href="#vergleich">Vergleich</a></li>
+        <li><a href="https://app.inovimmo.ch/auth/register">Registrieren</a></li>
+        <li><a href="https://app.inovimmo.ch/auth/login">Einloggen</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Verwaltungsservice</h5>
+      <ul>
+        <li><a href="#verwaltung">Übersicht</a></li>
+        <li><a href="#preise">Pakete & Preise</a></li>
+        <li><a href="mailto:info@inovimmo.ch">Anfragen</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Unternehmen</h5>
+      <ul>
+        <li><a href="#">Über uns</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="mailto:info@inovimmo.ch">Kontakt</a></li>
+        <li><a href="#">Datenschutz</a></li>
+        <li><a href="#">AGB</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Inovimmo · Zürich, Schweiz · Built in 🇨🇭</p>
+    <div class="footer-badge">
+      <span>Supabase CH</span>
+      <span>nDSG-konform</span>
+      <span>MWST 8.1%</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

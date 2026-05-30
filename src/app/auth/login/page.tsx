@@ -81,13 +81,15 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Demo-Hinweis */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-        <p className="text-xs text-blue-700 font-medium mb-1">Demo-Zugänge:</p>
-        <p className="text-xs text-blue-600">Verwalter: verwalter@demo.ch / demo1234</p>
-        <p className="text-xs text-blue-600">Mieter: mieter@demo.ch / demo1234</p>
-        <p className="text-xs text-blue-600">Dienstleister: dienst@demo.ch / demo1234</p>
-      </div>
+      {/* Demo-Hinweis — nur in Entwicklung sichtbar */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+          <p className="text-xs text-blue-700 font-medium mb-1">Demo-Zugänge:</p>
+          <p className="text-xs text-blue-600">Verwalter: verwalter@demo.ch / demo1234</p>
+          <p className="text-xs text-blue-600">Mieter: mieter@demo.ch / demo1234</p>
+          <p className="text-xs text-blue-600">Dienstleister: dienst@demo.ch / demo1234</p>
+        </div>
+      )}
     </>
   );
 }

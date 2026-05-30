@@ -86,6 +86,12 @@ function chf(value: number) {
   });
 }
 
+function swissDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'auf den nächstmöglichen Kündigungstermin';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function drawText(
   page: any,
   text: string,
@@ -196,13 +202,16 @@ export async function generateFormularPdf(
 
   // EMPFÄNGER (Mieter) — Linkes Kuvertfenster
   // Feld: "Einschreiben Feld Adresseingabe LINKS 4" [x=59, y=588, w=232, h=113]
+  // Mieter-Adresse: Liegenschaftsadresse (Mieter wohnen in der Wohnung)
+  const mieterStrasse = mieter?.strasse || `${liegenschaft?.strasse || ''} ${liegenschaft?.hausnummer || ''}`.trim();
+  const mieterPlz = mieter?.plz || liegenschaft?.plz || '';
+  const mieterOrt = mieter?.ort || liegenschaft?.ort || '';
   drawText(page1, mieterName, 65, 685, font, 10);
-  if (mieter?.strasse) drawText(page1, mieter.strasse, 65, 670, font, 9);
-  if (mieter?.plz && mieter?.ort) drawText(page1, `${mieter.plz} ${mieter.ort}`, 65, 655, font, 9);
+  if (mieterStrasse) drawText(page1, mieterStrasse, 65, 670, font, 9);
+  if (mieterPlz && mieterOrt) drawText(page1, `${mieterPlz} ${mieterOrt}`, 65, 655, font, 9);
 
   // ABSENDER / VERMIETER — Rechtes Kuvertfenster
   // Feld: "Einschreiben Feld Adresseingabe 1 RECHTS 4" [x=306, y=588, w=232, h=113]
-  // Absender = Vermieter (Kurt Rusch)
   drawText(page1, eigentuemerName, 312, 685, font, 10);
   if (erhoehung.eigentuemer_adresse) drawText(page1, erhoehung.eigentuemer_adresse, 312, 670, font, 9);
   if (erhoehung.eigentuemer_ort) drawText(page1, erhoehung.eigentuemer_ort, 312, 655, font, 9);
@@ -218,6 +227,11 @@ export async function generateFormularPdf(
     if (line) drawText(page1, line, 65, 540 - i * 14, font, 9);
   });
 
+  // VERMIETER/IN Textfeld — unter Absender, rechts
+  // Feld: "Vermieter/in Feld Text 4" [x=59, y=465, w=257, h=13]
+  const vermieterLine = [eigentuemerName, erhoehung.eigentuemer_adresse, erhoehung.eigentuemer_ort].filter(Boolean).join(', ');
+  if (vermieterLine) drawText(page1, vermieterLine, 65, 469, font, 8);
+
   // KONTROLLKÄSTCHEN 1: Mietzinserhöhung
   // Feld: "Kontrollkästchen 1" [x=161, y=409, w=12, h=12]
   drawText(page1, 'X', 164, 411, bold, 12);
@@ -229,6 +243,10 @@ export async function generateFormularPdf(
   // KONTROLLKÄSTCHEN 3: Wohnung
   // Feld: "Kontrollkästchen 3" [x=134, y=342, w=12, h=12]
   drawText(page1, 'X', 137, 344, bold, 12);
+
+  // INKRAFTTRETEN AB — Datum auf Seite 1
+  // Textfeld 6: [x=380, y=312, w=159, h=12]
+  drawText(page1, swissDate(erhoehung.inkrafttreten), 383, 316, font, 9);
 
   // FINANZTABELLE — Nettomietzins (Zeile 1)
   // Textfeld 7 (bisher): [x=235, y=282, w=84, h=13]
@@ -248,7 +266,11 @@ export async function generateFormularPdf(
   drawText(page1, chf(alteBrutto), 240, 148, bold, 11);
   drawText(page1, chf(neueBrutto), 355, 148, bold, 11);
 
-  // BEGRÜNDUNG — 4 Zeilen
+  // KONTROLLKÄSTCHEN 5: Begründung gemäss separatem Begleitschreiben
+  // Feld: "Kontrollkästchen 5" [x=206, y=115, w=12, h=12]
+  drawText(page1, 'X', 209, 117, bold, 12);
+
+  // BEGRÜNDUNG — 4 Zeilen (Verweis auf Begleitschreiben)
   // Textfeld 32: [x=59, y=100, w=480, h=12]
   // Textfeld 76: [x=59, y=84, w=480, h=12]
   // Textfeld 74: [x=59, y=69, w=480, h=12]
@@ -275,10 +297,28 @@ export async function generateFormularPdf(
   // PAGE 2
   // ============================================================
 
-  // ORT UND DATUM — Zeile 1
+  // REFERENZZINSSATZ UND KAPITALISIERUNGSSATZ — die beiden Sätze
+  // Textfeld 71: [x=199, y=723, w=340, h=13]
+  // Textfeld 72: [x=199, y=708, w=340, h=14]
+  const refAlt = Number(erhoehung.referenzzinssatz_alt || 0);
+  const refNeu = Number(erhoehung.referenzzinssatz_neu || 0);
+  if (refAlt > 0 || refNeu > 0) {
+    drawText(page2, `Referenzzinssatz bisher ${refAlt.toFixed(2)}% / neu ${refNeu.toFixed(2)}%`, 205, 727, font, 9);
+  }
+  // HEV-konform: 4-Block-Begründung
+  const likAlt = Number(erhoehung.lik_index_alt || 0);
+  const likNeu = Number(erhoehung.lik_index_neu || 0);
+  const teuerungPct = Number(erhoehung.teuerung_prozent || 0);
+  const teuerung40 = Number(erhoehung.teuerung_40_prozent || 0);
+  if (likAlt > 0 && likNeu > 0) {
+    drawText(page2, `LIK ${likAlt.toFixed(1)} → ${likNeu.toFixed(1)}, Teuerung ${teuerungPct.toFixed(2)}%, 40% anrechenbar = ${teuerung40.toFixed(2)}%`, 205, 712, font, 9);
+  }
+
+  // ORT UND DATUM
   // Textfeld 70: [x=199, y=738, w=339, h=14]
-  const datumsOrt = erhoehung.eigentuemer_ort || 'Dällikon';
-  drawText(page2, `${datumsOrt}, ${new Date().toLocaleDateString('de-CH')}`, 205, 742, font, 10);
+  const datumsOrt = erhoehung.eigentuemer_ort || 'Oetwil an der Limmat';
+  const druckDatum = new Date().toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
+  drawText(page2, `${datumsOrt}, ${druckDatum}`, 205, 742, font, 10);
 
   // UMSCHREIBUNG DER ÄNDERUNG — Freitextbereich
   // Zwischen Textfeld 72 (y=708) und Unterschriftsbereich (y=620)
@@ -296,9 +336,7 @@ export async function generateFormularPdf(
 
   drawText(
     page2,
-    erhoehung.inkrafttreten
-      ? String(erhoehung.inkrafttreten)
-      : 'auf den nächstmöglichen Kündigungstermin',
+    swissDate(erhoehung.inkrafttreten),
     80,
     505,
     font,
@@ -363,11 +401,34 @@ export async function generateEinschreibenPdf(
     ? ((erhoehungMonat / alteMiete) * 100).toFixed(1)
     : '–';
 
-  const begruendung =
-    position.begruendung ||
-    'Mietzinserhöhung infolge wertvermehrender Investitionen und allgemeiner Kostensteigerungen.';
+  // HEV-konforme 4-Block Begründung
+  const begruendungParts: string[] = [];
+  const refAlt = Number(erhoehung.referenzzinssatz_alt || 0);
+  const refNeu = Number(erhoehung.referenzzinssatz_neu || 0);
+  if (refAlt !== 0 || refNeu !== 0) {
+    const pp = refNeu - refAlt;
+    begruendungParts.push(`a) Referenzzinssatz-Änderung: ${refAlt.toFixed(2)}% → ${refNeu.toFixed(2)}% (${pp >= 0 ? '+' : ''}${pp.toFixed(2)} pp), Erhöhung CHF ${erhoehungMonat > 0 ? 'siehe unten' : '0.00'}/Mt.`);
+  }
+  const likAlt = Number(erhoehung.lik_index_alt || 0);
+  const likNeu = Number(erhoehung.lik_index_neu || 0);
+  if (likAlt > 0 && likNeu > 0) {
+    const teuerung = ((likNeu - likAlt) / likAlt * 100).toFixed(2);
+    begruendungParts.push(`b) Teuerungsausgleich: LIK ${likAlt.toFixed(1)} → ${likNeu.toFixed(1)}, Teuerung ${teuerung}%, anrechenbar 40% = ${(Number(teuerung) * 0.4).toFixed(2)}%`);
+  }
+  const ksPauschale = Number(erhoehung.kostensteigerung_pauschale || 0);
+  const ksJahre = Number(erhoehung.kostensteigerung_pro_jahr || 0);
+  if (ksPauschale > 0 && ksJahre > 0) {
+    begruendungParts.push(`c) Allgemeine Kostensteigerung: ${ksPauschale}% p.a. × ${ksJahre} Jahre = ${(ksPauschale * ksJahre).toFixed(2)}%`);
+  }
+  const investTotal = Number(erhoehung.investition_total || 0);
+  if (investTotal > 0) {
+    begruendungParts.push(`d) Wertvermehrende Investition: CHF ${chf(investTotal)} gemäss Art. 269a lit. b OR`);
+  }
+  const begruendung = begruendungParts.length > 0
+    ? begruendungParts.join('\n')
+    : (position.begruendung || 'Mietzinserhöhung nach Art. 269d OR.');
 
-  const datumsOrt = erhoehung.eigentuemer_ort || 'Dällikon';
+  const datumsOrt = erhoehung.eigentuemer_ort || 'Oetwil an der Limmat';
   const datumStr = new Date().toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const briefDaten: MietzinsErhoehungBriefDaten = {
@@ -386,9 +447,7 @@ export async function generateEinschreibenPdf(
     brutto_neu: chf(neueMiete + neueNk),
     erhoehung_monatlich: chf(erhoehungMonat),
     erhoehung_prozent: erhoehungProzent,
-    inkrafttreten: erhoehung.inkrafttreten
-      ? String(erhoehung.inkrafttreten)
-      : 'auf den nächstmöglichen Kündigungstermin',
+    inkrafttreten: swissDate(erhoehung.inkrafttreten),
     eigentuemer_name: eigentuemerName,
     eigentuemer_adresse: erhoehung.eigentuemer_adresse || '',
     eigentuemer_ort: erhoehung.eigentuemer_ort || '',

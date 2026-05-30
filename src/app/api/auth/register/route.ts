@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Passwort muss mindestens 8 Zeichen haben" }, { status: 400 });
   }
 
-  // Role validieren
-  const roleToUse = VALID_ROLES.includes(role as any) ? role : "verwalter";
+  // Role validieren — default to least-privileged role
+  const roleToUse = VALID_ROLES.includes(role as any) ? role : "mieter";
 
   // Name validieren (XSS-Schutz)
   const nameTrimmed = String(full_name).trim();

@@ -31,7 +31,7 @@ export default async function AdminBenutzerPage({ searchParams }: { searchParams
     .from("liegenschaften").select("id, name").order("name");
 
   // Fetch auth user status (banned?) via admin client
-  let authUsers: Record<string, { banned_until: string | null; confirmed_at: string | null }> = {};
+  const authUsers: Record<string, { banned_until: string | null; confirmed_at: string | null }> = {};
   if (isAdmin) {
     try {
       const { createAdminClient } = await import("@/lib/supabase/admin");

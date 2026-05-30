@@ -1,5 +1,4 @@
-// Mietzinserhoehung — Briefvorlagen fuer Einschreiben
-// Professionelle Vorlage nach Schweizer Mietrecht (OR Art. 269d, 270b)
+// Mietzinserhoehung — Briefvorlagen fuer Einschreiben (HEV-konform, 4 Bloecke)
 
 export interface MietzinsErhoehungBriefDaten {
   mieter_anrede: string;
@@ -22,42 +21,51 @@ export interface MietzinsErhoehungBriefDaten {
   begruendung: string;
   datum_ort: string;
   datum: string;
+  // HEV 4-Block Details
+  block_referenzzins_text?: string;
+  block_teuerung_text?: string;
+  block_kostensteigerung_text?: string;
+  block_investition_text?: string;
 }
 
 export function generiereEinschreibenBrief(daten: MietzinsErhoehungBriefDaten): string {
+  const bloecke: string[] = [];
+
+  if (daten.block_referenzzins_text) {
+    bloecke.push(`a) Referenzzinssatz-Änderung:\n${daten.block_referenzzins_text}`);
+  }
+  if (daten.block_teuerung_text) {
+    bloecke.push(`b) Teuerungsausgleich:\n${daten.block_teuerung_text}`);
+  }
+  if (daten.block_kostensteigerung_text) {
+    bloecke.push(`c) Allgemeine Kostensteigerung:\n${daten.block_kostensteigerung_text}`);
+  }
+  if (daten.block_investition_text) {
+    bloecke.push(`d) Wertvermehrende Investition:\n${daten.block_investition_text}`);
+  }
+
+  const begruendungstext = bloecke.length > 0
+    ? bloecke.join('\n\n')
+    : daten.begruendung;
+
   const t = `{{mieter_anrede}}
 
-gestützt auf Art. 269d des Schweizerischen Obligationenrechts (OR) teilen wir Ihnen hiermit eine Erhöhung des Mietzinses für die Wohnung {{wohnung_bezeichnung}} an der Liegenschaft {{liegenschaft_name}}, {{liegenschaft_adresse}}, mit.
+wir teilen Ihnen hiermit eine Erhöhung des Nettomietzinses für die Wohnung {{wohnung_bezeichnung}} an der Liegenschaft {{liegenschaft_name}}, {{liegenschaft_adresse}}, mit.
 
 1. Mietzinsanpassung
 
-Die Miete setzt sich wie folgt zusammen:
-
 Nettomietzins:         CHF {{miete_alt}} auf CHF {{miete_neu}} (Erhöhung: CHF {{erhoehung_monatlich}}/Monat)
-Nebenkosten (akonto):  CHF {{nebenkosten_alt}} auf CHF {{nebenkosten_neu}}
-Bruttomiete:           CHF {{brutto_alt}} auf CHF {{brutto_neu}}
+Nebenkosten (akonto):  CHF {{nebenkosten_alt}}
 
-Die Erhöhung beträgt CHF {{erhoehung_monatlich}} pro Monat und wirkt sich auf die Bruttomiete aus.
+2. Begründung
 
-2. Inkrafttreten
+${begruendungstext}
 
-Die Mietzinserhöhung tritt {{inkrafttreten}} in Kraft.
+3. Inkrafttreten
 
-3. Begründung
+Die Mietzinserhöhung tritt auf den nächstmöglichen Kündigungstermin in Kraft.
 
-{{begruendung}}
-
-Die detaillierte Berechnung ist dem beiliegenden amtlichen Formular zu entnehmen.
-
-4. Rechtliches
-
-Gemäss Art. 270b OR können Sie diese Mietzinserhöhung innert 30 Tagen nach Empfang dieses Schreibens bei der zuständigen Schlichtungsbehörde für Mietsachen anfechten. Das Anfechtungsrecht entsteht mit dem Erhalt dieses Einschreibens.
-
-Wir weisen Sie darauf hin, dass Sie das amtliche Formular zur Mietzinserhöhung (Art. 269d Abs. 1 OR) zusammen mit diesem Schreiben erhalten. Das Formular liegt diesem Einschreiben bei.
-
-5. Kontakt
-
-Sollten Sie Fragen zu dieser Mitteilung haben, stehen wir Ihnen gerne zur Verfügung.
+Das amtliche Formular liegt diesem Einschreiben bei.
 
 Freundliche Grüsse
 
@@ -67,7 +75,7 @@ Freundliche Grüsse
 {{eigentuemer_ort}}
 
 Beilagen:
-– Amtliches Formular zur Mietzinserhöhung (Art. 269d OR)`;
+– Amtliches Formular zur Mietzinserhöhung`;
 
   return ersetzePlatzhalter(t, daten);
 }

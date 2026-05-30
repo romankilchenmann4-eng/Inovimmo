@@ -81,6 +81,28 @@ export async function POST(req: NextRequest) {
   let erstellt = 0;
   let übersprungen = 0;
 
+  const mahnungenToInsert: Array<{
+    verwalter_id: string;
+    wohnung_id: string;
+    mieter_id: string | null;
+    stufe: 1 | 2 | 3;
+    offener_betrag: number;
+    periode: string;
+    versendet_at: string;
+    auto_erstellt: boolean;
+    status: string;
+  }> = [];
+
+  const emailsToSend: Array<{
+    to: string;
+    mieterName: string;
+    wohnung: string;
+    liegenschaft: string;
+    offenerBetrag: number;
+    offeneMonate: string[];
+    mahnstufe: 1 | 2 | 3;
+  }> = [];
+
   for (const soll of sollBuchungen) {
     if (!soll.wohnung_id) { übersprungen++; continue; }
 
@@ -137,10 +159,10 @@ export async function POST(req: NextRequest) {
     const aktiverMV = wohnung.mietverhaeltnisse?.[0];
     const mieter = aktiverMV?.mieter;
 
-    // Create mahnung
-    const { error: insertErr } = await supabase.from("mahnungen").insert({
+    // Collect for batch insert
+    mahnungenToInsert.push({
       verwalter_id: wohnung.liegenschaft.verwalter_id,
-      wohnung_id: soll.wohnung_id,
+      wohnung_id: soll.wohnung_id!,
       mieter_id: aktiverMV?.mieter_id ?? null,
       stufe: nextStufe,
       offener_betrag: Number(soll.betrag),
@@ -150,30 +172,42 @@ export async function POST(req: NextRequest) {
       status: "offen",
     });
 
-    if (insertErr) {
-      console.error("Mahnung insert error:", insertErr.message);
-      übersprungen++;
-      continue;
-    }
-
-    // Send email to mieter
+    // Collect email for sending after batch insert
     if (mieter?.email) {
-      try {
-        await sendMahnung({
-          to: mieter.email,
-          mieterName: `${mieter.vorname} ${mieter.nachname}`,
-          wohnung: wohnung.bezeichnung,
-          liegenschaft: wohnung.liegenschaft.name,
-          offenerBetrag: Number(soll.betrag),
-          offeneMonate: [periode],
-          mahnstufe: nextStufe,
-        });
-      } catch (emailErr) {
-        console.error("Email send error:", emailErr);
-      }
+      emailsToSend.push({
+        to: mieter.email,
+        mieterName: `${mieter.vorname} ${mieter.nachname}`,
+        wohnung: wohnung.bezeichnung,
+        liegenschaft: wohnung.liegenschaft!.name,
+        offenerBetrag: Number(soll.betrag),
+        offeneMonate: [periode],
+        mahnstufe: nextStufe,
+      });
+    }
+  }
+
+  // Batch insert all mahnungen at once
+  if (mahnungenToInsert.length > 0) {
+    const { error: batchErr } = await supabase
+      .from("mahnungen")
+      .insert(mahnungenToInsert);
+
+    if (batchErr) {
+      console.error("Mahnung batch insert error:", batchErr.message);
+      await finishAutomationRun(supabase, run, "failed", {}, batchErr.message);
+      return NextResponse.json({ error: batchErr.message }, { status: 500 });
     }
 
-    erstellt++;
+    erstellt = mahnungenToInsert.length;
+  }
+
+  // Send emails (still one-by-one, but after batch insert)
+  for (const emailData of emailsToSend) {
+    try {
+      await sendMahnung(emailData);
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr);
+    }
   }
 
   const summary = {

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { erstelleErhoehung } from '@/lib/mietzinserhoehung/actions';
+import { getNeuesterReferenzzinssatz, getNeuesterLikIndex } from '@/lib/mietzinserhoehung/data';
 
 export default async function NeueMietzinsErhoehungPage() {
   const supabase = await createClient();
@@ -18,16 +19,19 @@ export default async function NeueMietzinsErhoehungPage() {
   }
 
   const list = liegenschaften ?? [];
+  const aktuellerRZS = getNeuesterReferenzzinssatz();
+  const aktuellerLIK = getNeuesterLikIndex();
 
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Neue Mietzinserhöhung</h1>
-        <p className="text-sm text-gray-500 mt-1">Erstellt das amtliche Formular für alle Wohnungen der Liegenschaft.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          HEV-konforme Berechnung: Referenzzinssatz, Teuerungsausgleich, Kostensteigerung & Investitionen.
+        </p>
       </div>
 
       <form action={erstelleErhoehung} className="space-y-5">
-
         {/* Allgemein */}
         <div className="bg-white rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Allgemein</h2>
@@ -57,31 +61,38 @@ export default async function NeueMietzinsErhoehungPage() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Grund der Erhöhung</label>
-            <select
-              name="grund"
-              defaultValue="renovation"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="renovation">Renovation / wertvermehrende Investition</option>
-              <option value="kostensteigerung">Kostensteigerung (Nebenkosten, Betrieb)</option>
-              <option value="hypothek">Hypothekarzinsanpassung</option>
-              <option value="teuerung">Teuerungsausgleich</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Grund der Erhöhung</label>
+              <select
+                name="grund"
+                defaultValue="referenzzinssatz"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="referenzzinssatz">Referenzzinssatz-Änderung</option>
+                <option value="teuerungsausgleich">Teuerungsausgleich (LIK)</option>
+                <option value="kostensteigerung">Allgemeine Kostensteigerung</option>
+                <option value="investition">Wertvermehrende Investition</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Inkrafttreten per</label>
+              <input
+                type="date"
+                name="inkrafttreten"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Inkrafttreten</label>
-            <input
-              type="date"
-              name="inkrafttreten"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
+          <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-800">
+            <p>Aktueller Referenzzinssatz: <strong>{aktuellerRZS.toFixed(2)}%</strong></p>
+            <p>Aktueller LIK-Index: <strong>{aktuellerLIK.toFixed(1)}</strong></p>
+            <p className="mt-1 text-blue-600">Die genauen Werte können nach dem Erstellen im Detailformular angepasst werden.</p>
           </div>
         </div>
 
-        {/* Eigentümer / Vermieter */}
+        {/* Eigentümer */}
         <div className="bg-white rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Eigentümer / Vermieter</h2>
           <p className="text-xs text-gray-500">Erscheint auf dem amtlichen Erhöhungsformular als Absender.</p>
@@ -113,15 +124,6 @@ export default async function NeueMietzinsErhoehungPage() {
               />
             </div>
           </div>
-        </div>
-
-        {/* Mieter-Hinweis */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm font-medium text-blue-800 mb-1">ℹ️ Mieter-Zuordnung</p>
-          <p className="text-xs text-blue-700">
-            Nach dem Erstellen werden automatisch Positionen für alle Wohnungen der Liegenschaft angelegt.
-            Auf dem Detailformular können Sie pro Wohnung den Mieter (Name, Adresse) ergänzen.
-          </p>
         </div>
 
         <button

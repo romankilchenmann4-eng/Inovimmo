@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
 
   if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ sent: false, error: "RESEND_API_KEY fehlt." }, { status: 503 });
+    console.error("Email service not configured: RESEND_API_KEY missing");
+    return NextResponse.json({ sent: false, error: "E-Mail-Dienst nicht konfiguriert." }, { status: 503 });
   }
 
   let body: { type?: EmailType; payload?: unknown; data?: unknown };

@@ -50,22 +50,35 @@ export const ALLOWED_ERHOEHUNG_FIELDS = [
   "titel",
   "grund",
   "status",
+  // Block 1: Referenzzinssatz
+  "referenzzinssatz_alt",
+  "referenzzinssatz_neu",
+  "referenzzinssatz_aenderung",
+  // Block 2: Teuerungsausgleich (LIK)
+  "lik_index_alt",
+  "lik_index_neu",
+  "teuerung_prozent",
+  "teuerung_40_prozent",
+  // Block 3: Kostensteigerung
+  "kostensteigerung_pauschale",
+  "kostensteigerung_pro_jahr",
+  // Block 4: Investitionen
   "investition_total",
   "foerderbeitraege",
-  "sonstige_kosten",
-  "sonstige_abzuege",
   "wertvermehrend_prozent",
-  "kapitalisierungssatz",
-  "referenzzinssatz",
-  "zuschlag_prozent",
   "amortisation_prozent",
   "unterhalt_prozent",
+  "ersatzbeschaffung_1zu1",
+  "nebenkosten_aenderung_monatlich",
+  // Datum-Felder
   "inkrafttreten",
+  "berechnungsdatum",
+  "letzte_anpassung",
+  "mietbeginn",
+  // Eigentümer
   "eigentuemer_name",
   "eigentuemer_adresse",
   "eigentuemer_ort",
-  "mietbeginn",
-  "mietende",
-  "ersatzbeschaffung_1zu1",
-  "nebenkosten_aenderung_monatlich",
+  // Begründung
+  "begruendung_text",
 ] as const;

@@ -107,8 +107,8 @@ export async function POST(req: NextRequest) {
       target_id: userId,
       details: { target_email: target.email, target_role: target.role },
     });
-  } catch {
-    // Audit-Log-Fehler soll den Vorgang nicht blockieren
+  } catch (auditErr) {
+    console.error("Audit log write failed for impersonation:", auditErr);
   }
 
   console.log(`Impersonation: Admin ${user.id} wechselt zu ${userId} (${target.email})`);

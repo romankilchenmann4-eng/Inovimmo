@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/**
+ * Sanitize user-provided strings before embedding in system prompt.
+ * Strips control characters, HTML tags, and truncates to maxLength.
+ */
+function sanitizePromptInput(input: unknown, maxLength: number = 200): string {
+  return String(input ?? "")
+    .replace(/[\x00-\x1F\x7F]/g, "")
+    .replace(/[<>]/g, "")
+    .slice(0, maxLength)
+    .trim();
+}
+
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
   ]);
 
   const admin = createAdminClient();
-  const { data: mietverhaeltnisse } = admin && user.email
+  const { data: mietverhaeltnisse } = user.email
     ? await admin
       .from("mietverhaeltnisse")
       .select("mieter:mieter_id!inner(email), wohnung:wohnungen(bezeichnung,nettomiete,nebenkosten_akonto,status)")
@@ -69,9 +81,9 @@ export async function POST(req: NextRequest) {
 Du bist der freundliche KI-Assistent von Inovimmo, einer Schweizer Immobilienverwaltungsplattform.
 Antworte auf Deutsch, kurz und präzise. Nutze Schweizer Schreibweise.
 
-Nutzer: ${profile?.full_name ?? "Unbekannt"} (${profile?.role ?? "unbekannte Rolle"})
-${wohnung ? `Wohnung: ${wohnung.bezeichnung}, Miete: CHF ${wohnung.nettomiete}/Mt., NK: CHF ${wohnung.nebenkosten_akonto}/Mt.` : ""}
-${tickets?.length ? `Letzte Tickets: ${tickets.map((t) => `${t.titel} (${t.status})`).join(", ")}` : "Keine Tickets im Kontext."}
+Nutzer: ${sanitizePromptInput(profile?.full_name)} (${sanitizePromptInput(profile?.role)})
+${wohnung ? `Wohnung: ${sanitizePromptInput(wohnung.bezeichnung)}, Miete: CHF ${wohnung.nettomiete}/Mt., NK: CHF ${wohnung.nebenkosten_akonto}/Mt.` : ""}
+${tickets?.length ? `Letzte Tickets: ${tickets.map((t) => `${sanitizePromptInput(t.titel)} (${sanitizePromptInput(t.status)})`).join(", ")}` : "Keine Tickets im Kontext."}
 
 Wichtig: Du kannst keine Aktionen ausführen, nur informieren und beraten.
 Für Notfälle: Feuerwehr 118, Polizei 117, Sanität 144.
